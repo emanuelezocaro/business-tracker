@@ -41,7 +41,7 @@ export default function App() {
     <>
       {tab === 'dashboard' && <Dashboard entries={entries} />}
       {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} />}
-      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} contacts={contacts} customCategories={categories} />}
+      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} />}
       {tab === 'analysis' && <Analysis entries={entries} />}
       {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />}
     </>
