@@ -8,12 +8,19 @@ export const CONTACT_TYPES = [
   { key: 'altro', label: 'Altro', color: '#64748b', bg: '#f1f5f9' },
 ];
 
+const TYPE_COUNTS = (contacts) => {
+  const counts = {};
+  contacts.forEach(c => { counts[c.type] = (counts[c.type] || 0) + 1; });
+  return counts;
+};
+
 export default function Contacts({ contacts, onAdd, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'cliente', notes: '' });
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('tutti');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [search, setSearch] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -25,30 +32,58 @@ export default function Contacts({ contacts, onAdd, onDelete }) {
     setShowForm(false);
   }
 
-  const filtered = contacts.filter(c => filter === 'tutti' || c.type === filter);
+  const counts = TYPE_COUNTS(contacts);
+  const filtered = contacts.filter(c => {
+    const matchType = filter === 'tutti' || c.type === filter;
+    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.notes?.toLowerCase().includes(search.toLowerCase());
+    return matchType && matchSearch;
+  });
 
   return (
     <div className="page">
       <div className="page-header-row">
-        <h2 className="page-title">Contatti ({contacts.length})</h2>
+        <h2 className="page-title">Contatti <span className="year-badge">{contacts.length}</span></h2>
         <button className="btn-add" onClick={() => setShowForm(v => !v)}>
-          {showForm ? '✕' : '+ Nuovo'}
+          {showForm ? '✕ Chiudi' : '+ Nuovo'}
         </button>
+      </div>
+
+      {/* Sommario per tipo */}
+      <div className="contact-summary">
+        {CONTACT_TYPES.map(t => (
+          <div key={t.key} className="contact-summary-chip" style={{ background: t.bg, color: t.color }}>
+            <span className="cs-count">{counts[t.key] || 0}</span>
+            <span className="cs-label">{t.label}{(counts[t.key] || 0) !== 1 ? 'i' : 'e'}</span>
+          </div>
+        ))}
       </div>
 
       {showForm && (
         <form className="form card" onSubmit={handleSubmit}>
-          <label className="field-label">Nome *</label>
-          <input
-            className="field-input"
-            type="text"
-            placeholder="Es. Mario Rossi / Agenzia XYZ"
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            required
-            autoFocus
-          />
-
+          <div className="contacts-form-row">
+            <div className="contacts-form-col">
+              <label className="field-label">Nome *</label>
+              <input
+                className="field-input"
+                type="text"
+                placeholder="Es. Mario Rossi / Agenzia XYZ"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="contacts-form-col">
+              <label className="field-label">Note</label>
+              <input
+                className="field-input"
+                type="text"
+                placeholder="Email, telefono, P.IVA..."
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+          </div>
           <label className="field-label">Tipo</label>
           <div className="type-tabs">
             {CONTACT_TYPES.map(t => (
@@ -63,60 +98,72 @@ export default function Contacts({ contacts, onAdd, onDelete }) {
               </button>
             ))}
           </div>
-
-          <label className="field-label">Note (opzionale)</label>
-          <input
-            className="field-input"
-            type="text"
-            placeholder="Email, telefono, P.IVA..."
-            value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-          />
-
-          <button className="btn-primary" type="submit" disabled={saving}>
+          <button className="btn-primary" type="submit" disabled={saving} style={{ maxWidth: 200 }}>
             {saving ? 'Salvataggio...' : 'Aggiungi contatto'}
           </button>
         </form>
       )}
 
-      <div className="filter-tabs">
-        {['tutti', ...CONTACT_TYPES.map(t => t.key)].map(k => {
-          const t = CONTACT_TYPES.find(x => x.key === k);
-          return (
-            <button
-              key={k}
-              className={`filter-tab ${filter === k ? 'active' : ''}`}
-              style={filter === k && k !== 'tutti' ? { background: t.color, color: '#fff', borderColor: 'transparent' } : {}}
-              onClick={() => setFilter(k)}
-            >
-              {k === 'tutti' ? 'Tutti' : t.label}
-            </button>
-          );
-        })}
+      <div className="contacts-toolbar">
+        <input
+          className="field-input search-input"
+          type="search"
+          placeholder="Cerca contatto..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ maxWidth: 280 }}
+        />
+        <div className="filter-tabs">
+          {['tutti', ...CONTACT_TYPES.map(t => t.key)].map(k => {
+            const t = CONTACT_TYPES.find(x => x.key === k);
+            return (
+              <button
+                key={k}
+                className={`filter-tab ${filter === k ? 'active' : ''}`}
+                style={filter === k && k !== 'tutti' ? { background: t.color, color: '#fff', borderColor: 'transparent' } : {}}
+                onClick={() => setFilter(k)}
+              >
+                {k === 'tutti' ? 'Tutti' : t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {filtered.length === 0 && (
         <div className="empty-state">
-          {contacts.length === 0 ? 'Nessun contatto. Clicca "+ Nuovo" per aggiungerne uno.' : 'Nessun contatto in questa categoria.'}
+          {contacts.length === 0 ? 'Nessun contatto. Clicca "+ Nuovo" per aggiungerne uno.' : 'Nessun contatto trovato.'}
         </div>
       )}
 
-      <div className="entry-list">
-        {filtered.map(c => {
-          const t = CONTACT_TYPES.find(x => x.key === c.type) || CONTACT_TYPES[4];
-          return (
-            <div key={c.id} className="entry-card">
-              <div className="entry-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {filtered.length > 0 && (
+        <div className="contacts-table">
+          <div className="contacts-table-header">
+            <div className="cc-avatar" />
+            <div className="cc-name">Nome</div>
+            <div className="cc-type">Tipo</div>
+            <div className="cc-notes">Note</div>
+            <div className="cc-actions" />
+          </div>
+          {filtered.map(c => {
+            const t = CONTACT_TYPES.find(x => x.key === c.type) || CONTACT_TYPES[4];
+            return (
+              <div key={c.id} className="contact-row">
+                <div className="cc-avatar">
                   <span className="contact-avatar" style={{ background: t.bg, color: t.color }}>
                     {c.name.charAt(0).toUpperCase()}
                   </span>
-                  <div>
-                    <p className="entry-desc" style={{ marginBottom: 2 }}>{c.name}</p>
-                    <span className="entry-type-badge" style={{ background: t.bg, color: t.color }}>{t.label}</span>
-                  </div>
                 </div>
-                <div className="entry-actions">
+                <div className="cc-name">
+                  <span className="contact-name">{c.name}</span>
+                </div>
+                <div className="cc-type">
+                  <span className="entry-type-badge" style={{ background: t.bg, color: t.color }}>{t.label}</span>
+                </div>
+                <div className="cc-notes">
+                  {c.notes && <span className="contact-notes-text">{c.notes}</span>}
+                </div>
+                <div className="cc-actions">
                   {confirmDelete === c.id ? (
                     <>
                       <span className="confirm-text">Eliminare?</span>
@@ -128,11 +175,10 @@ export default function Contacts({ contacts, onAdd, onDelete }) {
                   )}
                 </div>
               </div>
-              {c.notes && <p className="entry-notes" style={{ marginTop: 6 }}>{c.notes}</p>}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
