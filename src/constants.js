@@ -5,18 +5,8 @@ export const ENTRY_TYPES = {
   debito: { label: 'Debito', color: '#7c3aed', bg: '#ede9fe', icon: '⚠' },
 };
 
-export const DEFAULT_CATEGORIES = {
-  ricavo: ['Consulenze', 'Servizi ricorrenti', 'Progetti una tantum', 'Altro'],
-  costo: ['Personale / Collaboratori', 'Software & Abbonamenti', 'Marketing', 'Tasse & Contributi', 'Spese operative', 'Altro'],
-  credito: ['Fattura emessa', 'Acconto atteso', 'Rimborso atteso', 'Altro'],
-  debito: ['Fornitore', 'Collaboratore', 'Tasse', 'Affitto', 'Altro'],
-};
-
 export function buildCategories(type, customCategories) {
-  const defaults = DEFAULT_CATEGORIES[type] || [];
-  const custom = customCategories.filter(c => c.type === type).map(c => c.name);
-  const all = [...new Set([...defaults, ...custom])];
-  return all;
+  return customCategories.filter(c => c.type === type).map(c => c.name);
 }
 
 export const STATUS_OPTIONS = {

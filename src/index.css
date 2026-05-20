@@ -305,6 +305,7 @@ body { background: var(--bg); }
 }
 .field-input:focus { border-color: var(--primary); }
 .field-textarea { resize: vertical; min-height: 80px; }
+.field-hint { font-size: 13px; color: var(--text-muted); padding: 10px 14px; background: var(--bg); border-radius: var(--radius-sm); border: 1.5px solid var(--border); }
 
 .radio-group { display: flex; gap: 10px; }
 .radio-option {
@@ -615,7 +616,6 @@ body { background: var(--bg); }
   display: inline-flex; align-items: center; gap: 4px;
   padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
 }
-.cat-chip-default { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 .cat-chip-custom { background: #dbeafe; color: var(--primary); border: 1px solid #bfdbfe; }
 .cat-chip-del {
   background: none; border: none; cursor: pointer;

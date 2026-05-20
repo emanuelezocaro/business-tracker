@@ -8,7 +8,6 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
-    customCategory: '',
     amount: '',
     description: '',
     date: today(),
@@ -26,7 +25,7 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
     setForm(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'type' ? { category: '', customCategory: '' } : {}),
+      ...(field === 'type' ? { category: '' } : {}),
     }));
   }
 
@@ -34,7 +33,7 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
     e.preventDefault();
     if (!form.amount || !form.description) return;
     setSaving(true);
-    const cat = form.category === 'custom' ? form.customCategory : form.category;
+    const cat = form.category;
     const contact = contacts.find(c => c.id === form.contactId);
     await onAdd({
       type: form.type,
@@ -50,7 +49,7 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', customCategory: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '' });
+    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -97,23 +96,13 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
         />
 
         <label className="field-label">Categoria</label>
-        <select className="field-input" value={form.category} onChange={e => set('category', e.target.value)}>
-          <option value="">Seleziona...</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          <option value="custom">+ Categoria personalizzata</option>
-        </select>
-
-        {form.category === 'custom' && (
-          <>
-            <label className="field-label">Nome categoria</label>
-            <input
-              className="field-input"
-              type="text"
-              placeholder="Es. Formazione"
-              value={form.customCategory}
-              onChange={e => set('customCategory', e.target.value)}
-            />
-          </>
+        {categories.length === 0 ? (
+          <p className="field-hint">Nessuna categoria per questo tipo. Creale in <strong>Gestione → Categorie</strong>.</p>
+        ) : (
+          <select className="field-input" value={form.category} onChange={e => set('category', e.target.value)}>
+            <option value="">Seleziona...</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         )}
 
         <label className="field-label">Contatto collegato</label>

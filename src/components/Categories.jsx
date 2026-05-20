@@ -1,20 +1,18 @@
 import { useState } from 'react';
-import { ENTRY_TYPES, DEFAULT_CATEGORIES } from '../constants';
+import { ENTRY_TYPES } from '../constants';
 
 export default function Categories({ categories, onAdd, onDelete }) {
   const [activeType, setActiveType] = useState('ricavo');
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const defaults = DEFAULT_CATEGORIES[activeType] || [];
   const custom = categories.filter(c => c.type === activeType);
 
   async function handleAdd(e) {
     e.preventDefault();
     const name = newName.trim();
     if (!name) return;
-    const exists = [...defaults, ...custom.map(c => c.name)]
-      .some(n => n.toLowerCase() === name.toLowerCase());
+    const exists = custom.some(c => c.name.toLowerCase() === name.toLowerCase());
     if (exists) { setNewName(''); return; }
     setSaving(true);
     await onAdd({ name, type: activeType });
@@ -24,7 +22,6 @@ export default function Categories({ categories, onAdd, onDelete }) {
 
   return (
     <div className="categories-panel">
-      {/* Selezione tipo */}
       <div className="type-tabs">
         {Object.entries(ENTRY_TYPES).map(([key, t]) => (
           <button
@@ -39,35 +36,19 @@ export default function Categories({ categories, onAdd, onDelete }) {
         ))}
       </div>
 
-      <div className="cat-columns">
-        {/* Categorie di default */}
-        <div className="cat-group">
-          <p className="cat-group-title">Predefinite</p>
-          <div className="cat-chips">
-            {defaults.map(name => (
-              <span key={name} className="cat-chip cat-chip-default">{name}</span>
-            ))}
-          </div>
+      {custom.length === 0 ? (
+        <p className="cat-empty">Nessuna categoria per questo tipo. Aggiungila qui sotto.</p>
+      ) : (
+        <div className="cat-chips">
+          {custom.map(c => (
+            <span key={c.id} className="cat-chip cat-chip-custom">
+              {c.name}
+              <button className="cat-chip-del" onClick={() => onDelete(c.id)} title="Elimina">×</button>
+            </span>
+          ))}
         </div>
+      )}
 
-        {/* Categorie personalizzate */}
-        <div className="cat-group">
-          <p className="cat-group-title">Personalizzate</p>
-          {custom.length === 0 && (
-            <p className="cat-empty">Nessuna ancora. Aggiungila qui sotto.</p>
-          )}
-          <div className="cat-chips">
-            {custom.map(c => (
-              <span key={c.id} className="cat-chip cat-chip-custom">
-                {c.name}
-                <button className="cat-chip-del" onClick={() => onDelete(c.id)} title="Elimina">×</button>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Form aggiunta */}
       <form className="cat-add-form" onSubmit={handleAdd}>
         <input
           className="field-input"
