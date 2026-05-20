@@ -4,7 +4,9 @@ import { CONTACT_TYPES } from './Contacts';
 import EditModal from './EditModal';
 
 function fmt(n) {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+  const sign = n < 0 ? '-' : '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${sign}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 
 function fmtDate(val) {

@@ -8,7 +8,9 @@ import { ENTRY_TYPES } from '../constants';
 const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
 function fmt(n) {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+  const sign = n < 0 ? '-' : '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${sign}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 
 function fmtDate(val) {

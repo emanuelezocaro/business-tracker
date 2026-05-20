@@ -5,7 +5,9 @@ import { ENTRY_TYPES } from '../constants';
 const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#65a30d'];
 
 function fmt(n) {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
+  const sign = n < 0 ? '-' : '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${sign}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 function pct(part, total) {
   if (!total) return '0%';
