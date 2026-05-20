@@ -155,11 +155,18 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [entries]);
 
-  const globalTotals = useMemo(() => {
+  const dateTotals = useMemo(() => {
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo + 'T23:59:59') : null;
     const t = {};
-    entries.forEach(e => { t[e.type] = (t[e.type] || 0) + e.amount; });
+    entries.forEach(e => {
+      const d = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+      if (from && d < from) return;
+      if (to && d > to) return;
+      t[e.type] = (t[e.type] || 0) + e.amount;
+    });
     return t;
-  }, [entries]);
+  }, [entries, dateFrom, dateTo]);
 
   const filtered = useMemo(() => {
     const from = dateFrom ? new Date(dateFrom) : null;
@@ -238,9 +245,8 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
 
   return (
     <div className="page">
-      {/* Totali globali — fissi, non cambiano con i filtri */}
       <div className="entry-totals">
-        {Object.entries(globalTotals).map(([type, val]) => {
+        {Object.entries(dateTotals).map(([type, val]) => {
           const t = ENTRY_TYPES[type];
           return (
             <div key={type} className="entry-total-chip">

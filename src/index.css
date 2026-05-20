@@ -464,8 +464,8 @@ body { background: var(--bg); }
 
   .entry-table-header {
     display: grid;
-    grid-template-columns: 115px 1fr 130px 120px 95px 110px 110px 90px;
-    gap: 10px;
+    grid-template-columns: 110px 1fr 140px 130px 100px 120px 120px 84px;
+    gap: 12px;
     padding: 10px 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
@@ -474,12 +474,20 @@ body { background: var(--bg); }
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: .5px;
+    align-items: center;
+  }
+
+  .entry-table-header .sort-th {
+    flex-direction: row;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .entry-card {
     display: grid;
-    grid-template-columns: 115px 1fr 130px 120px 95px 110px 110px 90px;
-    gap: 10px;
+    grid-template-columns: 110px 1fr 140px 130px 100px 120px 120px 84px;
+    gap: 12px;
     padding: 12px 16px;
     border-radius: 0;
     border: none;
@@ -491,7 +499,7 @@ body { background: var(--bg); }
   .ec-main { flex-direction: column; align-items: flex-start; gap: 2px; }
   .ec-contact { align-items: center; }
   .ec-amount { text-align: right; }
-  .ec-actions { justify-content: flex-end; }
+  .ec-actions { justify-content: flex-end; gap: 4px; }
 }
 
 .entry-type-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; display: inline-block; }
