@@ -170,11 +170,12 @@ function PerRicavo({ entries }) {
     <div className="revenue-breakdown">
       {grouped.map(group => {
         const costi = group.entries.flatMap(r => getCostiFor(r.id));
-        // Separare ricavi incassati da crediti ancora da incassare
-        const totalIncassato = group.entries.filter(e => e.type === 'ricavo').reduce((s, r) => s + r.amount, 0);
+        const totalRicavi  = group.entries.filter(e => e.type === 'ricavo').reduce((s, r) => s + r.amount, 0);
         const totalCrediti = group.entries.filter(e => e.type === 'credito').reduce((s, r) => s + r.amount, 0);
-        const totaleCosti = costi.reduce((s, c) => s + c.amount, 0);
-        const margine = totalIncassato - totaleCosti;
+        const totalCosti   = costi.filter(c => c.type === 'costo').reduce((s, c) => s + c.amount, 0);
+        const totalDebiti  = costi.filter(c => c.type === 'debito').reduce((s, c) => s + c.amount, 0);
+        const margineA = totalRicavi - totalCosti;
+        const margineB = (totalRicavi + totalCrediti) - (totalCosti + totalDebiti);
         const isOpen = selectedId === group.key;
         const latestDate = group.entries.reduce((latest, r) => {
           const d = r.date?.toDate ? r.date.toDate() : new Date(r.date);
@@ -193,24 +194,33 @@ function PerRicavo({ entries }) {
                       <span className="contact-chip" style={{ background: '#dcfce7', color: '#16a34a' }}>{group.contactName}</span>
                     )}
                     <span className="entry-date">{fmtDate(latestDate)}</span>
-                    {totalCrediti > 0 && (
-                      <span className="rev-credit-badge">⏳ {fmt(totalCrediti)} da incassare</span>
-                    )}
                   </div>
                 </div>
               </div>
-              <div className="revenue-card-kpis">
+              <div className="rev-kpi-grid">
                 <div className="rev-kpi">
-                  <span className="rev-kpi-label">Incassato</span>
-                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(totalIncassato)}</span>
+                  <span className="rev-kpi-label">Ricavi</span>
+                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(totalRicavi)}</span>
                 </div>
                 <div className="rev-kpi">
                   <span className="rev-kpi-label">Costi</span>
-                  <span className="rev-kpi-value" style={{ color: '#dc2626' }}>{fmt(totaleCosti)}</span>
+                  <span className="rev-kpi-value" style={{ color: totalCosti > 0 ? '#dc2626' : '#94a3b8' }}>{fmt(totalCosti)}</span>
+                </div>
+                <div className="rev-kpi rev-kpi-highlight">
+                  <span className="rev-kpi-label">Margine A</span>
+                  <span className="rev-kpi-value" style={{ color: margineA >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(margineA)}</span>
                 </div>
                 <div className="rev-kpi">
-                  <span className="rev-kpi-label">Margine</span>
-                  <span className="rev-kpi-value" style={{ color: margine >= 0 ? '#16a34a' : '#dc2626', fontWeight: 800 }}>{fmt(margine)}</span>
+                  <span className="rev-kpi-label">Crediti</span>
+                  <span className="rev-kpi-value" style={{ color: totalCrediti > 0 ? '#d97706' : '#94a3b8' }}>{fmt(totalCrediti)}</span>
+                </div>
+                <div className="rev-kpi">
+                  <span className="rev-kpi-label">Debiti</span>
+                  <span className="rev-kpi-value" style={{ color: totalDebiti > 0 ? '#7c3aed' : '#94a3b8' }}>{fmt(totalDebiti)}</span>
+                </div>
+                <div className="rev-kpi rev-kpi-highlight">
+                  <span className="rev-kpi-label">Margine B</span>
+                  <span className="rev-kpi-value" style={{ color: margineB >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(margineB)}</span>
                 </div>
               </div>
             </div>
