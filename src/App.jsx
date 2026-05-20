@@ -2,18 +2,19 @@ import { useState } from 'react';
 import Dashboard from './components/Dashboard';
 import AddEntry from './components/AddEntry';
 import EntryList from './components/EntryList';
-import Analysis from './components/Analysis';
+import Projects from './components/Projects';
 import Contacts from './components/Contacts';
 import { useEntries } from './hooks/useEntries';
 import { useContacts } from './hooks/useContacts';
 import { useCategories } from './hooks/useCategories';
+import { useProjects } from './hooks/useProjects';
 import './index.css';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
+  { id: 'progetti', label: 'Progetti', icon: '◫' },
   { id: 'add', label: 'Aggiungi', icon: '+' },
   { id: 'list', label: 'Voci', icon: '≡' },
-  { id: 'analysis', label: 'Analisi', icon: '◉' },
   { id: 'contacts', label: 'Gestione', icon: '⚙' },
 ];
 
@@ -22,13 +23,14 @@ export default function App() {
   const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus, updateEntry } = useEntries();
   const { contacts, loading: loadingContacts, addContact, deleteContact } = useContacts();
   const { categories, loading: loadingCategories, addCategory, deleteCategory } = useCategories();
+  const { projects, loading: loadingProjects, addProject, updateProject, deleteProject } = useProjects();
 
   async function handleAdd(data) {
     await addEntry(data);
     setTab('list');
   }
 
-  if (loadingEntries || loadingContacts || loadingCategories) {
+  if (loadingEntries || loadingContacts || loadingCategories || loadingProjects) {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
@@ -40,9 +42,9 @@ export default function App() {
   const content = (
     <>
       {tab === 'dashboard' && <Dashboard entries={entries} />}
-      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} />}
-      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} />}
-      {tab === 'analysis' && <Analysis entries={entries} />}
+      {tab === 'progetti' && <Projects projects={projects} entries={entries} contacts={contacts} customCategories={categories} onAdd={addProject} onUpdate={updateProject} onDelete={deleteProject} onAddEntry={addEntry} />}
+      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} projects={projects} />}
+      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} projects={projects} />}
       {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />}
     </>
   );

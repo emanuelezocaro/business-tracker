@@ -24,7 +24,7 @@ const CustomTooltip = ({ active, payload }) => {
   );
 };
 
-function PerCategoria({ entries }) {
+export function PerCategoria({ entries }) {
   const [activeType, setActiveType] = useState('ricavo');
   const [year, setYear] = useState(new Date().getFullYear());
 

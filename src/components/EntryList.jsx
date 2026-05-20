@@ -97,7 +97,7 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
   );
 }
 
-export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, onAdd, contacts, customCategories }) {
+export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, onAdd, contacts, customCategories, projects = [] }) {
   const [filter, setFilter] = useState('tutti');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -206,6 +206,7 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
           contacts={contacts || []}
           customCategories={customCategories || []}
           entries={entries}
+          projects={projects}
           onSave={onUpdate}
           onClose={() => setEditEntry(null)}
         />

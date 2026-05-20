@@ -5,7 +5,7 @@ import { LinkedEntrySelect } from './LinkedEntrySelect';
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export default function AddEntry({ onAdd, contacts = [], customCategories = [], entries = [] }) {
+export default function AddEntry({ onAdd, contacts = [], customCategories = [], entries = [], projects = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
@@ -16,6 +16,7 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
     notes: '',
     contactId: '',
     linkedEntryId: '',
+    projectId: '',
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -52,10 +53,11 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
       linkedEntryId: linked?.id || null,
       linkedEntryDescription: linked?.description || null,
       linkedEntryType: linked?.type || null,
+      projectId: form.projectId || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', linkedEntryId: '' });
+    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', linkedEntryId: '', projectId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -124,6 +126,16 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
                 </label>
               ))}
             </div>
+          </>
+        )}
+
+        {projects.length > 0 && (
+          <>
+            <label className="field-label">Progetto (opzionale)</label>
+            <select className="field-input" value={form.projectId} onChange={e => set('projectId', e.target.value)}>
+              <option value="">Nessun progetto</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.contactName ? ` — ${p.contactName}` : ''}</option>)}
+            </select>
           </>
         )}
 

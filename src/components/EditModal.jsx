@@ -9,7 +9,7 @@ function toDateInput(val) {
   return d.toISOString().split('T')[0];
 }
 
-export default function EditModal({ entry, contacts, customCategories, entries, onSave, onClose }) {
+export default function EditModal({ entry, contacts, customCategories, entries, projects = [], onSave, onClose }) {
   const [form, setForm] = useState({
     type: entry.type,
     category: entry.category || '',
@@ -19,8 +19,8 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     status: entry.status || 'completato',
     notes: entry.notes || '',
     contactId: entry.contactId || '',
-    // supporta sia il vecchio linkedRevenueId che il nuovo linkedEntryId
     linkedEntryId: entry.linkedEntryId || entry.linkedRevenueId || '',
+    projectId: entry.projectId || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -58,6 +58,7 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
       linkedEntryType: linked?.type || null,
       linkedRevenueId: null,
       linkedRevenueDescription: null,
+      projectId: form.projectId || null,
     });
     setSaving(false);
     onClose();
@@ -135,6 +136,16 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
                     </label>
                   ))}
                 </div>
+              </>
+            )}
+
+            {projects.length > 0 && (
+              <>
+                <label className="field-label">Progetto</label>
+                <select className="field-input" value={form.projectId} onChange={e => set('projectId', e.target.value)}>
+                  <option value="">Nessun progetto</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.contactName ? ` — ${p.contactName}` : ''}</option>)}
+                </select>
               </>
             )}
 
