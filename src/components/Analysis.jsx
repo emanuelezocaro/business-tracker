@@ -168,9 +168,11 @@ function PerRicavo({ entries }) {
     <div className="revenue-breakdown">
       {grouped.map(group => {
         const costi = group.entries.flatMap(r => getCostiFor(r.id));
-        const totalRicavo = group.entries.reduce((s, r) => s + r.amount, 0);
+        // Separare ricavi incassati da crediti ancora da incassare
+        const totalIncassato = group.entries.filter(e => e.type === 'ricavo').reduce((s, r) => s + r.amount, 0);
+        const totalCrediti = group.entries.filter(e => e.type === 'credito').reduce((s, r) => s + r.amount, 0);
         const totaleCosti = costi.reduce((s, c) => s + c.amount, 0);
-        const margine = totalRicavo - totaleCosti;
+        const margine = totalIncassato - totaleCosti;
         const isOpen = selectedId === group.key;
         const latestDate = group.entries.reduce((latest, r) => {
           const d = r.date?.toDate ? r.date.toDate() : new Date(r.date);
@@ -189,16 +191,16 @@ function PerRicavo({ entries }) {
                       <span className="contact-chip" style={{ background: '#dcfce7', color: '#16a34a' }}>{group.contactName}</span>
                     )}
                     <span className="entry-date">{fmtDate(latestDate)}</span>
-                    {group.entries.length > 1 && (
-                      <span className="rev-entries-count">{group.entries.length} voci</span>
+                    {totalCrediti > 0 && (
+                      <span className="rev-credit-badge">⏳ {fmt(totalCrediti)} da incassare</span>
                     )}
                   </div>
                 </div>
               </div>
               <div className="revenue-card-kpis">
                 <div className="rev-kpi">
-                  <span className="rev-kpi-label">Ricavo</span>
-                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(totalRicavo)}</span>
+                  <span className="rev-kpi-label">Incassato</span>
+                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(totalIncassato)}</span>
                 </div>
                 <div className="rev-kpi">
                   <span className="rev-kpi-label">Costi</span>
@@ -217,8 +219,11 @@ function PerRicavo({ entries }) {
                   <div className="rev-subentries">
                     {group.entries.map(r => (
                       <div key={r.id} className="rev-subentry-row">
+                        <span style={{ fontSize: 11, fontWeight: 700, color: r.type === 'ricavo' ? '#16a34a' : '#d97706' }}>
+                          {r.type === 'ricavo' ? '↑ Ricavo' : '⏳ Credito'}
+                        </span>
                         <span className="rev-cost-desc" style={{ color: '#64748b', fontSize: 12 }}>{fmtDate(r.date)}</span>
-                        <span className="rev-cost-amount" style={{ color: '#16a34a' }}>{fmt(r.amount)}</span>
+                        <span className="rev-cost-amount" style={{ color: r.type === 'ricavo' ? '#16a34a' : '#d97706' }}>{fmt(r.amount)}</span>
                       </div>
                     ))}
                   </div>
