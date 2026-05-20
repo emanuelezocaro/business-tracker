@@ -41,5 +41,12 @@ export function useEntries() {
     await updateDoc(doc(db, 'entries', id), { status });
   }
 
-  return { entries, loading, addEntry, deleteEntry, updateEntryStatus };
+  async function updateEntry(id, data) {
+    await updateDoc(doc(db, 'entries', id), {
+      ...data,
+      amount: parseFloat(data.amount),
+    });
+  }
+
+  return { entries, loading, addEntry, deleteEntry, updateEntryStatus, updateEntry };
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
+import EditModal from './EditModal';
 
 function fmt(n) {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -12,7 +13,7 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function EntryRow({ entry, onDelete, onUpdateStatus, confirmDelete, setConfirmDelete }) {
+function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, confirmDelete, setConfirmDelete }) {
   const t = ENTRY_TYPES[entry.type];
   const needsStatus = entry.type === 'credito' || entry.type === 'debito';
   const ct = CONTACT_TYPES.find(x => x.key === entry.contactType);
@@ -73,17 +74,21 @@ function EntryRow({ entry, onDelete, onUpdateStatus, confirmDelete, setConfirmDe
             <button className="btn-ghost-sm" onClick={() => setConfirmDelete(null)}>No</button>
           </>
         ) : (
-          <button className="btn-ghost-sm" onClick={() => setConfirmDelete(entry.id)}>Elimina</button>
+          <>
+            <button className="btn-ghost-sm" onClick={() => onEdit(entry)}>Modifica</button>
+            <button className="btn-ghost-sm" onClick={() => setConfirmDelete(entry.id)}>Elimina</button>
+          </>
         )}
       </div>
     </div>
   );
 }
 
-export default function EntryList({ entries, onDelete, onUpdateStatus }) {
+export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, contacts, customCategories }) {
   const [filter, setFilter] = useState('tutti');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editEntry, setEditEntry] = useState(null);
 
   const filtered = entries.filter(e => {
     const matchType = filter === 'tutti' || e.type === filter;
@@ -120,7 +125,6 @@ export default function EntryList({ entries, onDelete, onUpdateStatus }) {
         <div className="empty-state">Nessuna voce trovata.</div>
       )}
 
-      {/* Header tabella — solo desktop */}
       {filtered.length > 0 && (
         <div className="entry-table">
           <div className="entry-table-header">
@@ -138,11 +142,23 @@ export default function EntryList({ entries, onDelete, onUpdateStatus }) {
               entry={entry}
               onDelete={onDelete}
               onUpdateStatus={onUpdateStatus}
+              onEdit={setEditEntry}
               confirmDelete={confirmDelete}
               setConfirmDelete={setConfirmDelete}
             />
           ))}
         </div>
+      )}
+
+      {editEntry && (
+        <EditModal
+          entry={editEntry}
+          contacts={contacts || []}
+          customCategories={customCategories || []}
+          entries={entries}
+          onSave={onUpdate}
+          onClose={() => setEditEntry(null)}
+        />
       )}
     </div>
   );

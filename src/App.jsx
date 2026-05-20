@@ -19,7 +19,7 @@ const TABS = [
 
 export default function App() {
   const [tab, setTab] = useState('dashboard');
-  const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus } = useEntries();
+  const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus, updateEntry } = useEntries();
   const { contacts, loading: loadingContacts, addContact, deleteContact } = useContacts();
   const { categories, loading: loadingCategories, addCategory, deleteCategory } = useCategories();
 
@@ -41,7 +41,7 @@ export default function App() {
     <>
       {tab === 'dashboard' && <Dashboard entries={entries} />}
       {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} />}
-      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} />}
+      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} contacts={contacts} customCategories={categories} />}
       {tab === 'analysis' && <Analysis entries={entries} />}
       {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />}
     </>
