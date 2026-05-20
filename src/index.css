@@ -343,6 +343,37 @@ body { background: var(--bg); }
 
 .search-input { margin-bottom: 0; }
 
+.entry-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.filter-select:focus { outline: none; border-color: var(--primary); }
+
+.entry-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.entry-total-chip { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.entry-total-label { color: var(--text-muted); font-weight: 500; }
+.entry-total-value { font-weight: 800; }
+
+.sort-th { cursor: pointer; user-select: none; display: flex; align-items: center; }
+.sort-th:hover { color: var(--text); }
+.sort-icon { font-size: 10px; opacity: 0.35; white-space: nowrap; }
+.sort-icon.active { opacity: 1; color: var(--primary); }
+
 .filter-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
 .filter-tabs::-webkit-scrollbar { display: none; }
 .filter-tab {

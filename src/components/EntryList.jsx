@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ENTRY_TYPES, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 import EditModal from './EditModal';
@@ -13,6 +13,18 @@ function fmtDate(val) {
   if (!val) return '';
   const d = val?.toDate ? val.toDate() : new Date(val);
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function SortTh({ children, col, sortCol, sortDir, onSort, className }) {
+  const active = sortCol === col;
+  return (
+    <div className={`sort-th ${className || ''}`} onClick={() => onSort(col)}>
+      {children}
+      <span className={`sort-icon${active ? ' active' : ''}`}>
+        {active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ⇅'}
+      </span>
+    </div>
+  );
 }
 
 function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, confirmDelete, setConfirmDelete }) {
@@ -35,7 +47,6 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
             {entry.contactName}
           </span>
         )}
-
         {entry.notes && <p className="entry-notes">{entry.notes}</p>}
       </div>
 
@@ -94,13 +105,86 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
 }
 
 export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, onAdd, contacts, customCategories, projects = [] }) {
-  const [filter, setFilter] = useState('tutti');
-  const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
   const [paymentEntry, setPaymentEntry] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterContact, setFilterContact] = useState('');
+  const [sortCol, setSortCol] = useState('date');
+  const [sortDir, setSortDir] = useState('desc');
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  }
+
+  const hasFilters = search || filterType || filterCat || filterStatus || filterContact;
+
+  function resetFilters() {
+    setSearch(''); setFilterType(''); setFilterCat(''); setFilterStatus(''); setFilterContact('');
+  }
+
+  const cats = useMemo(() =>
+    [...new Set(entries.map(e => e.category).filter(Boolean))].sort(),
+    [entries]
+  );
+
+  const contactList = useMemo(() => {
+    const seen = new Set();
+    return entries
+      .filter(e => e.contactId && e.contactName && !seen.has(e.contactId) && seen.add(e.contactId))
+      .map(e => ({ id: e.contactId, name: e.contactName }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [entries]);
+
+  const filtered = useMemo(() => {
+    return entries
+      .filter(e => {
+        if (filterType && e.type !== filterType) return false;
+        if (filterCat && e.category !== filterCat) return false;
+        if (filterStatus && e.status !== filterStatus) return false;
+        if (filterContact && e.contactId !== filterContact) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          return (
+            e.description?.toLowerCase().includes(q) ||
+            e.category?.toLowerCase().includes(q) ||
+            e.contactName?.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        let va, vb;
+        if (sortCol === 'date') {
+          va = (a.date?.toDate ? a.date.toDate() : new Date(a.date)).getTime();
+          vb = (b.date?.toDate ? b.date.toDate() : new Date(b.date)).getTime();
+        } else if (sortCol === 'amount') {
+          va = a.amount; vb = b.amount;
+        } else if (sortCol === 'description') {
+          va = a.description?.toLowerCase() || ''; vb = b.description?.toLowerCase() || '';
+        } else if (sortCol === 'category') {
+          va = a.category?.toLowerCase() || ''; vb = b.category?.toLowerCase() || '';
+        } else if (sortCol === 'type') {
+          va = a.type; vb = b.type;
+        } else if (sortCol === 'status') {
+          va = a.status || ''; vb = b.status || '';
+        } else return 0;
+        return (va < vb ? -1 : va > vb ? 1 : 0) * (sortDir === 'asc' ? 1 : -1);
+      });
+  }, [entries, filterType, filterCat, filterStatus, filterContact, search, sortCol, sortDir]);
+
+  const totals = useMemo(() => {
+    const t = {};
+    filtered.forEach(e => { t[e.type] = (t[e.type] || 0) + e.amount; });
+    return t;
+  }, [filtered]);
 
   async function handlePartialPayment() {
     const amount = parseFloat(paymentAmount);
@@ -121,9 +205,6 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
           contactId: paymentEntry.contactId || '',
           contactType: paymentEntry.contactType || '',
           date: new Date().toISOString().split('T')[0],
-          linkedEntryId: paymentEntry.id,
-          linkedEntryDescription: paymentEntry.description,
-          linkedEntryType: paymentEntry.type,
           notes: '',
         });
         await onUpdate(paymentEntry.id, { amount: String(remaining) });
@@ -135,15 +216,16 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
     }
   }
 
-  const filtered = entries.filter(e => {
-    const matchType = filter === 'tutti' || e.type === filter;
-    const matchSearch = !search || e.description?.toLowerCase().includes(search.toLowerCase()) || e.category?.toLowerCase().includes(search.toLowerCase()) || e.contactName?.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
-  });
-
   return (
     <div className="page">
-      <h2 className="page-title">Voci ({filtered.length})</h2>
+      <div className="page-header-row">
+        <h2 className="page-title">Voci ({filtered.length})</h2>
+        {hasFilters && (
+          <button className="btn-ghost-sm" onClick={resetFilters} style={{ fontSize: 12 }}>
+            × Azzera filtri
+          </button>
+        )}
+      </div>
 
       <input
         className="field-input search-input"
@@ -153,33 +235,60 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
         onChange={e => setSearch(e.target.value)}
       />
 
-      <div className="filter-tabs">
-        {['tutti', ...Object.keys(ENTRY_TYPES)].map(t => (
-          <button
-            key={t}
-            className={`filter-tab ${filter === t ? 'active' : ''}`}
-            style={filter === t && t !== 'tutti' ? { background: ENTRY_TYPES[t].color, color: '#fff', borderColor: 'transparent' } : {}}
-            onClick={() => setFilter(t)}
-          >
-            {t === 'tutti' ? 'Tutti' : ENTRY_TYPES[t].label}
-          </button>
-        ))}
+      <div className="entry-filters">
+        <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
+          <option value="">Tutti i tipi</option>
+          {Object.entries(ENTRY_TYPES).map(([k, t]) => (
+            <option key={k} value={k}>{t.icon} {t.label}</option>
+          ))}
+        </select>
+
+        <select className="filter-select" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+          <option value="">Tutte le categorie</option>
+          {cats.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">Tutti gli stati</option>
+          {Object.entries(STATUS_OPTIONS).map(([k, s]) => (
+            <option key={k} value={k}>{s.label}</option>
+          ))}
+        </select>
+
+        {contactList.length > 0 && (
+          <select className="filter-select" value={filterContact} onChange={e => setFilterContact(e.target.value)}>
+            <option value="">Tutti i contatti</option>
+            {contactList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        )}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="empty-state">Nessuna voce trovata.</div>
+      {Object.keys(totals).length > 0 && (
+        <div className="entry-totals">
+          {Object.entries(totals).map(([type, val]) => {
+            const t = ENTRY_TYPES[type];
+            return (
+              <div key={type} className="entry-total-chip">
+                <span className="entry-total-label">{t.label}</span>
+                <span className="entry-total-value" style={{ color: t.color }}>{fmt(val)}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
 
-      {filtered.length > 0 && (
+      {filtered.length === 0 ? (
+        <div className="empty-state">Nessuna voce trovata.</div>
+      ) : (
         <div className="entry-table">
           <div className="entry-table-header">
-            <div className="ec-type">Tipo</div>
-            <div className="ec-main">Descrizione</div>
-            <div className="ec-cat">Categoria</div>
-            <div className="ec-date">Data</div>
-            <div className="ec-status">Stato</div>
-            <div className="ec-amount">Importo</div>
-            <div className="ec-actions"></div>
+            <SortTh col="type" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-type">Tipo</SortTh>
+            <SortTh col="description" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-main">Descrizione</SortTh>
+            <SortTh col="category" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-cat">Categoria</SortTh>
+            <SortTh col="date" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-date">Data</SortTh>
+            <SortTh col="status" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-status">Stato</SortTh>
+            <SortTh col="amount" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-amount">Importo</SortTh>
+            <div className="ec-actions" />
           </div>
           {filtered.map(entry => (
             <EntryRow
