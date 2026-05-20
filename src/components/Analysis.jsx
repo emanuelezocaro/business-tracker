@@ -175,7 +175,7 @@ function PerRicavo({ entries }) {
         const totalCosti   = costi.filter(c => c.type === 'costo').reduce((s, c) => s + c.amount, 0);
         const totalDebiti  = costi.filter(c => c.type === 'debito').reduce((s, c) => s + c.amount, 0);
         const margineA = totalRicavi - totalCosti;
-        const margineB = (totalRicavi + totalCrediti) - (totalCosti + totalDebiti);
+        const margineB = totalCrediti - totalDebiti;
         const isOpen = selectedId === group.key;
         const latestDate = group.entries.reduce((latest, r) => {
           const d = r.date?.toDate ? r.date.toDate() : new Date(r.date);
