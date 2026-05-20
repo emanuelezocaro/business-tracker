@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, CATEGORIES, STATUS_OPTIONS } from '../constants';
+import { CONTACT_TYPES } from './Contacts';
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export default function AddEntry({ onAdd, onNavigate }) {
+export default function AddEntry({ onAdd, contacts = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
@@ -13,6 +14,7 @@ export default function AddEntry({ onAdd, onNavigate }) {
     date: today(),
     status: 'completato',
     notes: '',
+    contactId: '',
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,6 +35,7 @@ export default function AddEntry({ onAdd, onNavigate }) {
     if (!form.amount || !form.description) return;
     setSaving(true);
     const cat = form.category === 'custom' ? form.customCategory : form.category;
+    const contact = contacts.find(c => c.id === form.contactId);
     await onAdd({
       type: form.type,
       category: cat || 'Altro',
@@ -41,10 +44,13 @@ export default function AddEntry({ onAdd, onNavigate }) {
       date: new Date(form.date),
       status: needsStatus ? form.status : 'completato',
       notes: form.notes,
+      contactId: form.contactId || null,
+      contactName: contact?.name || null,
+      contactType: contact?.type || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', customCategory: '', amount: '', description: '', date: today(), status: 'completato', notes: '' });
+    setForm({ type: form.type, category: '', customCategory: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -84,7 +90,7 @@ export default function AddEntry({ onAdd, onNavigate }) {
         <input
           className="field-input"
           type="text"
-          placeholder="Es. Consulenza cliente Mario Rossi"
+          placeholder="Es. Consulenza Mario Rossi"
           value={form.description}
           onChange={e => set('description', e.target.value)}
           required
@@ -109,6 +115,15 @@ export default function AddEntry({ onAdd, onNavigate }) {
             />
           </>
         )}
+
+        <label className="field-label">Contatto collegato</label>
+        <select className="field-input" value={form.contactId} onChange={e => set('contactId', e.target.value)}>
+          <option value="">Nessuno</option>
+          {contacts.map(c => {
+            const t = CONTACT_TYPES.find(x => x.key === c.type);
+            return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
+          })}
+        </select>
 
         <label className="field-label">Data</label>
         <input

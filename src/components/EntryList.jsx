@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, STATUS_OPTIONS } from '../constants';
+import { CONTACT_TYPES } from './Contacts';
 
 function fmt(n) {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -87,6 +88,16 @@ export default function EntryList({ entries, onDelete, onUpdateStatus }) {
                   </select>
                 </div>
               )}
+              {entry.contactName && (() => {
+                const ct = CONTACT_TYPES.find(x => x.key === entry.contactType);
+                return (
+                  <div className="entry-contact">
+                    <span className="contact-chip" style={{ background: ct?.bg || '#f1f5f9', color: ct?.color || '#64748b' }}>
+                      {entry.contactName}
+                    </span>
+                  </div>
+                );
+              })()}
               {entry.notes && <p className="entry-notes">{entry.notes}</p>}
               <div className="entry-actions">
                 {confirmDelete === entry.id ? (

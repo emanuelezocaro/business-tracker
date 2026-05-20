@@ -3,7 +3,9 @@ import Dashboard from './components/Dashboard';
 import AddEntry from './components/AddEntry';
 import EntryList from './components/EntryList';
 import Analysis from './components/Analysis';
+import Contacts from './components/Contacts';
 import { useEntries } from './hooks/useEntries';
+import { useContacts } from './hooks/useContacts';
 import './index.css';
 
 const TABS = [
@@ -11,18 +13,20 @@ const TABS = [
   { id: 'add', label: 'Aggiungi', icon: '+' },
   { id: 'list', label: 'Voci', icon: '≡' },
   { id: 'analysis', label: 'Analisi', icon: '◉' },
+  { id: 'contacts', label: 'Contatti', icon: '👤' },
 ];
 
 export default function App() {
   const [tab, setTab] = useState('dashboard');
-  const { entries, loading, addEntry, deleteEntry, updateEntryStatus } = useEntries();
+  const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus } = useEntries();
+  const { contacts, loading: loadingContacts, addContact, deleteContact } = useContacts();
 
   async function handleAdd(data) {
     await addEntry(data);
     setTab('list');
   }
 
-  if (loading) {
+  if (loadingEntries || loadingContacts) {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
@@ -40,9 +44,10 @@ export default function App() {
 
       <main className="app-main">
         {tab === 'dashboard' && <Dashboard entries={entries} />}
-        {tab === 'add' && <AddEntry onAdd={handleAdd} onNavigate={setTab} />}
+        {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} />}
         {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} />}
         {tab === 'analysis' && <Analysis entries={entries} />}
+        {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} />}
       </main>
 
       <nav className="bottom-nav">
