@@ -6,7 +6,9 @@ export const ENTRY_TYPES = {
 };
 
 export function buildCategories(type, customCategories) {
-  return customCategories.filter(c => c.type === type).map(c => c.name);
+  return customCategories
+    .filter(c => Array.isArray(c.types) ? c.types.includes(type) : c.type === type)
+    .map(c => c.name);
 }
 
 export const STATUS_OPTIONS = {
