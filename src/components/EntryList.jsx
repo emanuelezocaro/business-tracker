@@ -32,6 +32,11 @@ function EntryRow({ entry, onDelete, onUpdateStatus, confirmDelete, setConfirmDe
             {entry.contactName}
           </span>
         )}
+        {entry.linkedRevenueDescription && (
+          <span className="contact-chip linked-revenue-chip">
+            ↑ {entry.linkedRevenueDescription}
+          </span>
+        )}
         {entry.notes && <p className="entry-notes">{entry.notes}</p>}
       </div>
 

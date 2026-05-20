@@ -4,7 +4,7 @@ import { CONTACT_TYPES } from './Contacts';
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export default function AddEntry({ onAdd, contacts = [], customCategories = [] }) {
+export default function AddEntry({ onAdd, contacts = [], customCategories = [], entries = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
@@ -14,6 +14,7 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
     status: 'completato',
     notes: '',
     contactId: '',
+    linkedRevenueId: '',
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,23 +22,36 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
 
+  // Ricavi disponibili a cui collegare un costo
+  const ricavi = entries.filter(e => e.type === 'ricavo');
+
   function set(field, value) {
     setForm(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'type' ? { category: '' } : {}),
+      ...(field === 'type' ? { category: '', linkedRevenueId: '' } : {}),
     }));
+  }
+
+  function fmtDate(val) {
+    if (!val) return '';
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.amount || !form.description) return;
     setSaving(true);
-    const cat = form.category;
     const contact = contacts.find(c => c.id === form.contactId);
+    const linkedRevenue = ricavi.find(r => r.id === form.linkedRevenueId);
     await onAdd({
       type: form.type,
-      category: cat || 'Altro',
+      category: form.category || null,
       amount: form.amount,
       description: form.description,
       date: new Date(form.date),
@@ -46,10 +60,12 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
       contactId: form.contactId || null,
       contactName: contact?.name || null,
       contactType: contact?.type || null,
+      linkedRevenueId: linkedRevenue?.id || null,
+      linkedRevenueDescription: linkedRevenue?.description || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '' });
+    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', linkedRevenueId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -113,6 +129,25 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [] }
             return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
           })}
         </select>
+
+        {/* Collega a ricavo — solo per i costi */}
+        {form.type === 'costo' && (
+          <>
+            <label className="field-label">Collega a ricavo (opzionale)</label>
+            {ricavi.length === 0 ? (
+              <p className="field-hint">Nessun ricavo ancora inserito.</p>
+            ) : (
+              <select className="field-input" value={form.linkedRevenueId} onChange={e => set('linkedRevenueId', e.target.value)}>
+                <option value="">Nessuno</option>
+                {ricavi.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.description}{r.contactName ? ` — ${r.contactName}` : ''} ({fmt(r.amount)}, {fmtDate(r.date)})
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+        )}
 
         <label className="field-label">Data</label>
         <input

@@ -626,6 +626,56 @@ body { background: var(--bg); }
 
 .cat-add-form { display: flex; gap: 10px; align-items: center; }
 
+/* ===================== LINKED REVENUE ===================== */
+
+.linked-revenue-chip { background: #fef9c3 !important; color: #854d0e !important; }
+
+.revenue-breakdown { display: flex; flex-direction: column; gap: 10px; }
+
+.revenue-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.revenue-card.open { border-color: #93c5fd; }
+
+.revenue-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; cursor: pointer; gap: 12px;
+  transition: background .15s;
+}
+.revenue-card-header:hover { background: var(--bg); }
+
+.revenue-card-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+.revenue-toggle { font-size: 14px; color: var(--text-muted); flex-shrink: 0; margin-top: 2px; }
+.revenue-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.revenue-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.revenue-card-kpis { display: flex; gap: 16px; flex-shrink: 0; }
+@media (max-width: 480px) { .revenue-card-kpis { gap: 10px; } }
+
+.rev-kpi { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.rev-kpi-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+.rev-kpi-value { font-size: 14px; font-weight: 700; }
+
+.revenue-card-detail {
+  padding: 0 16px 14px 16px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 12px;
+}
+
+.rev-cost-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--surface);
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+}
+.rev-cost-desc { font-size: 14px; font-weight: 500; flex: 1; min-width: 100px; }
+.rev-cost-date { font-size: 12px; color: var(--text-muted); }
+.rev-cost-amount { font-size: 14px; font-weight: 700; margin-left: auto; }
+
 /* ===================== MISC ===================== */
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 15px; }
