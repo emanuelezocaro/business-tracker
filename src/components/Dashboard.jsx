@@ -93,7 +93,7 @@ export default function Dashboard({ entries }) {
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 }).format(v)} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="ricavi" fill="#16a34a" radius={[3, 3, 0, 0]} />
               <Bar dataKey="costi" fill="#dc2626" radius={[3, 3, 0, 0]} />
@@ -111,7 +111,7 @@ export default function Dashboard({ entries }) {
             <LineChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 }).format(v)} />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="saldo" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
