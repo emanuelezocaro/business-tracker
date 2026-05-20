@@ -37,8 +37,11 @@ export function useEntries() {
     await deleteDoc(doc(db, 'entries', id));
   }
 
-  async function updateEntryStatus(id, status) {
-    await updateDoc(doc(db, 'entries', id), { status });
+  async function updateEntryStatus(id, status, entryType) {
+    const updates = { status };
+    if (status === 'completato' && entryType === 'credito') updates.type = 'ricavo';
+    if (status === 'completato' && entryType === 'debito') updates.type = 'costo';
+    await updateDoc(doc(db, 'entries', id), updates);
   }
 
   async function updateEntry(id, data) {

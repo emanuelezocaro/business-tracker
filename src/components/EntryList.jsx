@@ -52,7 +52,7 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, confirmDelete, setC
           <select
             className="status-select"
             value={entry.status}
-            onChange={e => onUpdateStatus(entry.id, e.target.value)}
+            onChange={e => onUpdateStatus(entry.id, e.target.value, entry.type)}
             style={{ color: STATUS_OPTIONS[entry.status]?.color }}
           >
             {Object.entries(STATUS_OPTIONS).map(([k, s]) => (
