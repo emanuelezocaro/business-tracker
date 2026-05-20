@@ -112,24 +112,18 @@ function NewProjectModal({ contacts, onSave, onClose }) {
 
 // ── Aggiungi voce al progetto ─────────────────────────
 
-function ProjectEntryModal({ project, customCategories, contacts, entries, onSave, onClose }) {
+function ProjectEntryModal({ project, customCategories, contacts, onSave, onClose }) {
   const [form, setForm] = useState({
     type: 'ricavo', amount: '', description: '', category: '',
-    contactId: project.contactId || '', date: today(), status: 'in_sospeso', linkedEntryId: '',
+    contactId: project.contactId || '', date: today(), status: 'in_sospeso',
   });
   const [saving, setSaving] = useState(false);
 
   const cats = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
-  const canLink = form.type === 'costo' || form.type === 'debito';
-
-  const linkableEntries = useMemo(() =>
-    entries.filter(e => ['ricavo', 'credito'].includes(e.type) && (e.projectId === project.id || !e.projectId)),
-    [entries, project.id]
-  );
 
   function set(f, v) {
-    setForm(p => ({ ...p, [f]: v, ...(f === 'type' ? { category: '', linkedEntryId: '' } : {}) }));
+    setForm(p => ({ ...p, [f]: v, ...(f === 'type' ? { category: '' } : {}) }));
   }
 
   async function handleSubmit(e) {
@@ -137,7 +131,6 @@ function ProjectEntryModal({ project, customCategories, contacts, entries, onSav
     if (!form.amount || !form.description) return;
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
-    const linked = entries.find(r => r.id === form.linkedEntryId);
     await onSave({
       type: form.type,
       amount: form.amount,
@@ -150,9 +143,6 @@ function ProjectEntryModal({ project, customCategories, contacts, entries, onSav
       status: needsStatus ? form.status : 'completato',
       notes: '',
       projectId: project.id,
-      linkedEntryId: linked?.id || null,
-      linkedEntryDescription: linked?.description || null,
-      linkedEntryType: linked?.type || null,
     });
     setSaving(false);
     onClose();
@@ -202,18 +192,6 @@ function ProjectEntryModal({ project, customCategories, contacts, entries, onSav
                 return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
               })}
             </select>
-
-            {canLink && linkableEntries.length > 0 && (
-              <>
-                <label className="field-label">Collega a ricavo/credito</label>
-                <select className="field-input" value={form.linkedEntryId} onChange={e => set('linkedEntryId', e.target.value)}>
-                  <option value="">Nessuno</option>
-                  {linkableEntries.map(r => (
-                    <option key={r.id} value={r.id}>{r.description} ({fmt(r.amount)})</option>
-                  ))}
-                </select>
-              </>
-            )}
 
             <label className="field-label">Data</label>
             <input className="field-input" type="date" value={form.date} onChange={e => set('date', e.target.value)} />
@@ -373,7 +351,6 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
           project={project}
           customCategories={customCategories}
           contacts={contacts}
-          entries={entries}
           onSave={onAddEntry}
           onClose={() => setShowEntryModal(false)}
         />

@@ -35,11 +35,7 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
             {entry.contactName}
           </span>
         )}
-        {(entry.linkedEntryDescription || entry.linkedRevenueDescription) && (
-          <span className="contact-chip linked-revenue-chip">
-            ↑ {entry.linkedEntryDescription || entry.linkedRevenueDescription}
-          </span>
-        )}
+
         {entry.notes && <p className="entry-notes">{entry.notes}</p>}
       </div>
 

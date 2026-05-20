@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
-import { LinkedEntrySelect } from './LinkedEntrySelect';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -15,7 +14,6 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
     status: 'completato',
     notes: '',
     contactId: '',
-    linkedEntryId: '',
     projectId: '',
   });
   const [saving, setSaving] = useState(false);
@@ -23,13 +21,12 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
 
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
-  const canLink = form.type === 'costo' || form.type === 'debito';
 
   function set(field, value) {
     setForm(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'type' ? { category: '', linkedEntryId: '' } : {}),
+      ...(field === 'type' ? { category: '' } : {}),
     }));
   }
 
@@ -38,7 +35,6 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
     if (!form.amount || !form.description) return;
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
-    const linked = entries.find(r => r.id === form.linkedEntryId);
     await onAdd({
       type: form.type,
       category: form.category || null,
@@ -50,14 +46,11 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
       contactId: form.contactId || null,
       contactName: contact?.name || null,
       contactType: contact?.type || null,
-      linkedEntryId: linked?.id || null,
-      linkedEntryDescription: linked?.description || null,
-      linkedEntryType: linked?.type || null,
       projectId: form.projectId || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', linkedEntryId: '', projectId: '' });
+    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', projectId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -102,15 +95,6 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
             return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
           })}
         </select>
-
-        {canLink && (
-          <LinkedEntrySelect
-            entryType={form.type}
-            entries={entries}
-            value={form.linkedEntryId}
-            onChange={v => set('linkedEntryId', v)}
-          />
-        )}
 
         <label className="field-label">Data</label>
         <input className="field-input" type="date" value={form.date} onChange={e => set('date', e.target.value)} />

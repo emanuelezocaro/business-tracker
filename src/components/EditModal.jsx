@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
-import { LinkedEntrySelect } from './LinkedEntrySelect';
 
 function toDateInput(val) {
   if (!val) return '';
@@ -19,20 +18,18 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     status: entry.status || 'completato',
     notes: entry.notes || '',
     contactId: entry.contactId || '',
-    linkedEntryId: entry.linkedEntryId || entry.linkedRevenueId || '',
     projectId: entry.projectId || '',
   });
   const [saving, setSaving] = useState(false);
 
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
-  const canLink = form.type === 'costo' || form.type === 'debito';
 
   function set(field, value) {
     setForm(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'type' ? { category: '', linkedEntryId: '' } : {}),
+      ...(field === 'type' ? { category: '' } : {}),
     }));
   }
 
@@ -41,7 +38,6 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     if (!form.amount || !form.description) return;
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
-    const linked = entries.find(r => r.id === form.linkedEntryId);
     await onSave(entry.id, {
       type: form.type,
       category: form.category || null,
@@ -53,11 +49,6 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
       contactId: form.contactId || null,
       contactName: contact?.name || null,
       contactType: contact?.type || null,
-      linkedEntryId: linked?.id || null,
-      linkedEntryDescription: linked?.description || null,
-      linkedEntryType: linked?.type || null,
-      linkedRevenueId: null,
-      linkedRevenueDescription: null,
       projectId: form.projectId || null,
     });
     setSaving(false);
@@ -110,16 +101,6 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
                 return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
               })}
             </select>
-
-            {canLink && (
-              <LinkedEntrySelect
-                entryType={form.type}
-                entries={entries}
-                value={form.linkedEntryId}
-                onChange={v => set('linkedEntryId', v)}
-                excludeId={entry.id}
-              />
-            )}
 
             <label className="field-label">Data</label>
             <input className="field-input" type="date"
