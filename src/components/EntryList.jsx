@@ -15,14 +15,11 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function monthStart() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+function localDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-function monthEnd() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
-}
+function monthStart() { return localDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); }
+function monthEnd()   { return localDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)); }
 
 function SortTh({ children, col, sortCol, sortDir, onSort, className }) {
   const active = sortCol === col;

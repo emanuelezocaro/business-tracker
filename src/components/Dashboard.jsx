@@ -19,12 +19,11 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
 }
 
-function yearStart() {
-  return new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+function localDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-function yearEnd() {
-  return new Date(new Date().getFullYear(), 12, 0).toISOString().split('T')[0];
-}
+function yearStart() { return localDate(new Date(new Date().getFullYear(), 0, 1)); }
+function yearEnd()   { return localDate(new Date(new Date().getFullYear(), 12, 0)); }
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
