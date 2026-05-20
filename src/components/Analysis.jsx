@@ -95,7 +95,7 @@ export default function Analysis({ entries }) {
       {byCategory.length === 0 ? (
         <div className="empty-state">Nessuna voce per questo tipo nell'anno selezionato.</div>
       ) : (
-        <>
+        <div className="analysis-grid">
           <div className="card">
             <h3 className="section-title">Ripartizione per categoria</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -123,7 +123,7 @@ export default function Analysis({ entries }) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

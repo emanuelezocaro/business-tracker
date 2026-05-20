@@ -35,33 +35,61 @@ export default function App() {
     );
   }
 
+  const content = (
+    <>
+      {tab === 'dashboard' && <Dashboard entries={entries} />}
+      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} />}
+      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} />}
+      {tab === 'analysis' && <Analysis entries={entries} />}
+      {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} />}
+    </>
+  );
+
   return (
     <div className="app">
-      <header className="app-header">
-        <span className="app-logo">◈</span>
-        <h1 className="app-name">Business Tracker</h1>
-      </header>
+      {/* Sidebar — solo desktop */}
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="app-logo">◈</span>
+          <span className="app-name">Business Tracker</span>
+        </div>
+        <nav className="sidebar-nav">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`sidebar-btn ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span className="nav-icon">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <main className="app-main">
-        {tab === 'dashboard' && <Dashboard entries={entries} />}
-        {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} />}
-        {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} />}
-        {tab === 'analysis' && <Analysis entries={entries} />}
-        {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} />}
-      </main>
+      {/* Layout mobile */}
+      <div className="mobile-shell">
+        <header className="app-header">
+          <span className="app-logo">◈</span>
+          <h1 className="app-name">Business Tracker</h1>
+        </header>
+        <main className="app-main">{content}</main>
+        <nav className="bottom-nav">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`nav-btn ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span className="nav-icon">{t.icon}</span>
+              <span className="nav-label">{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
 
-      <nav className="bottom-nav">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`nav-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            <span className="nav-icon">{t.icon}</span>
-            <span className="nav-label">{t.label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* Contenuto principale — solo desktop */}
+      <main className="desktop-main">{content}</main>
     </div>
   );
 }
