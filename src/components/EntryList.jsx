@@ -324,6 +324,7 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
       {filtered.length === 0 ? (
         <div className="empty-state">Nessuna voce trovata.</div>
       ) : (
+        <div className="entry-table-scroll">
         <div className="entry-table">
           <div className="entry-table-header">
             <SortTh col="type" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-type">Tipo</SortTh>
@@ -347,6 +348,7 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
               setConfirmDelete={setConfirmDelete}
             />
           ))}
+        </div>
         </div>
       )}
 
