@@ -15,6 +15,15 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function monthStart() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+}
+function monthEnd() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+}
+
 function SortTh({ children, col, sortCol, sortDir, onSort, className }) {
   const active = sortCol === col;
   return (
@@ -42,12 +51,15 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
 
       <div className="ec-main">
         <span className="entry-desc">{entry.description}</span>
+        {entry.notes && <p className="entry-notes">{entry.notes}</p>}
+      </div>
+
+      <div className="ec-contact">
         {entry.contactName && (
           <span className="contact-chip" style={{ background: ct?.bg || '#f1f5f9', color: ct?.color || '#64748b' }}>
             {entry.contactName}
           </span>
         )}
-        {entry.notes && <p className="entry-notes">{entry.notes}</p>}
       </div>
 
       <div className="ec-cat">
@@ -116,6 +128,8 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
   const [filterCat, setFilterCat] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterContact, setFilterContact] = useState('');
+  const [dateFrom, setDateFrom] = useState(monthStart());
+  const [dateTo, setDateTo] = useState(monthEnd());
   const [sortCol, setSortCol] = useState('date');
   const [sortDir, setSortDir] = useState('desc');
 
@@ -124,10 +138,11 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
     else { setSortCol(col); setSortDir('asc'); }
   }
 
-  const hasFilters = search || filterType || filterCat || filterStatus || filterContact;
+  const hasActiveFilters = search || filterType || filterCat || filterStatus || filterContact;
 
   function resetFilters() {
     setSearch(''); setFilterType(''); setFilterCat(''); setFilterStatus(''); setFilterContact('');
+    setDateFrom(monthStart()); setDateTo(monthEnd());
   }
 
   const cats = useMemo(() =>
@@ -143,9 +158,21 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [entries]);
 
+  const globalTotals = useMemo(() => {
+    const t = {};
+    entries.forEach(e => { t[e.type] = (t[e.type] || 0) + e.amount; });
+    return t;
+  }, [entries]);
+
   const filtered = useMemo(() => {
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo + 'T23:59:59') : null;
+
     return entries
       .filter(e => {
+        const d = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+        if (from && d < from) return false;
+        if (to && d > to) return false;
         if (filterType && e.type !== filterType) return false;
         if (filterCat && e.category !== filterCat) return false;
         if (filterStatus && e.status !== filterStatus) return false;
@@ -175,16 +202,12 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
           va = a.type; vb = b.type;
         } else if (sortCol === 'status') {
           va = a.status || ''; vb = b.status || '';
+        } else if (sortCol === 'contact') {
+          va = a.contactName?.toLowerCase() || ''; vb = b.contactName?.toLowerCase() || '';
         } else return 0;
         return (va < vb ? -1 : va > vb ? 1 : 0) * (sortDir === 'asc' ? 1 : -1);
       });
-  }, [entries, filterType, filterCat, filterStatus, filterContact, search, sortCol, sortDir]);
-
-  const totals = useMemo(() => {
-    const t = {};
-    filtered.forEach(e => { t[e.type] = (t[e.type] || 0) + e.amount; });
-    return t;
-  }, [filtered]);
+  }, [entries, dateFrom, dateTo, filterType, filterCat, filterStatus, filterContact, search, sortCol, sortDir]);
 
   async function handlePartialPayment() {
     const amount = parseFloat(paymentAmount);
@@ -218,64 +241,82 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
 
   return (
     <div className="page">
-      <div className="page-header-row">
-        <h2 className="page-title">Voci ({filtered.length})</h2>
-        {hasFilters && (
-          <button className="btn-ghost-sm" onClick={resetFilters} style={{ fontSize: 12 }}>
-            × Azzera filtri
-          </button>
-        )}
+      {/* Totali globali — fissi, non cambiano con i filtri */}
+      <div className="entry-totals">
+        {Object.entries(globalTotals).map(([type, val]) => {
+          const t = ENTRY_TYPES[type];
+          return (
+            <div key={type} className="entry-total-chip">
+              <span className="entry-total-label">{t.label}</span>
+              <span className="entry-total-value" style={{ color: t.color }}>{fmt(val)}</span>
+            </div>
+          );
+        })}
       </div>
 
-      <input
-        className="field-input search-input"
-        type="search"
-        placeholder="Cerca descrizione, categoria, contatto..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
-
-      <div className="entry-filters">
-        <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
-          <option value="">Tutti i tipi</option>
-          {Object.entries(ENTRY_TYPES).map(([k, t]) => (
-            <option key={k} value={k}>{t.icon} {t.label}</option>
-          ))}
-        </select>
-
-        <select className="filter-select" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-          <option value="">Tutte le categorie</option>
-          {cats.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-
-        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">Tutti gli stati</option>
-          {Object.entries(STATUS_OPTIONS).map(([k, s]) => (
-            <option key={k} value={k}>{s.label}</option>
-          ))}
-        </select>
-
-        {contactList.length > 0 && (
-          <select className="filter-select" value={filterContact} onChange={e => setFilterContact(e.target.value)}>
-            <option value="">Tutti i contatti</option>
-            {contactList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        )}
-      </div>
-
-      {Object.keys(totals).length > 0 && (
-        <div className="entry-totals">
-          {Object.entries(totals).map(([type, val]) => {
-            const t = ENTRY_TYPES[type];
-            return (
-              <div key={type} className="entry-total-chip">
-                <span className="entry-total-label">{t.label}</span>
-                <span className="entry-total-value" style={{ color: t.color }}>{fmt(val)}</span>
-              </div>
-            );
-          })}
+      {/* Barra filtri */}
+      <div className="filter-bar">
+        <div className="filter-bar-row">
+          <input
+            className="field-input search-input"
+            type="search"
+            placeholder="Cerca descrizione, categoria, contatto…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-      )}
+
+        <div className="filter-bar-row">
+          <div className="filter-date-group">
+            <label className="filter-date-label">Dal</label>
+            <input className="filter-date-input" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <label className="filter-date-label">Al</label>
+            <input className="filter-date-input" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+
+          <div className="filter-type-pills">
+            <button
+              className={`filter-pill ${!filterType ? 'active' : ''}`}
+              onClick={() => setFilterType('')}
+            >Tutti</button>
+            {Object.entries(ENTRY_TYPES).map(([k, t]) => (
+              <button
+                key={k}
+                className={`filter-pill ${filterType === k ? 'active' : ''}`}
+                style={filterType === k ? { background: t.color, color: '#fff', borderColor: t.color } : { color: t.color, borderColor: t.color }}
+                onClick={() => setFilterType(filterType === k ? '' : k)}
+              >{t.icon} {t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-bar-row">
+          <select className="filter-select" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+            <option value="">Tutte le categorie</option>
+            {cats.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">Tutti gli stati</option>
+            {Object.entries(STATUS_OPTIONS).map(([k, s]) => (
+              <option key={k} value={k}>{s.label}</option>
+            ))}
+          </select>
+
+          {contactList.length > 0 && (
+            <select className="filter-select" value={filterContact} onChange={e => setFilterContact(e.target.value)}>
+              <option value="">Tutti i contatti</option>
+              {contactList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+
+          {hasActiveFilters && (
+            <button className="btn-ghost-sm filter-reset" onClick={resetFilters}>× Azzera</button>
+          )}
+
+          <span className="filter-count">{filtered.length} voci</span>
+        </div>
+      </div>
 
       {filtered.length === 0 ? (
         <div className="empty-state">Nessuna voce trovata.</div>
@@ -284,6 +325,7 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
           <div className="entry-table-header">
             <SortTh col="type" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-type">Tipo</SortTh>
             <SortTh col="description" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-main">Descrizione</SortTh>
+            <SortTh col="contact" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-contact">Contatto</SortTh>
             <SortTh col="category" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-cat">Categoria</SortTh>
             <SortTh col="date" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-date">Data</SortTh>
             <SortTh col="status" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-status">Stato</SortTh>

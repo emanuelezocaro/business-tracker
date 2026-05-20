@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid,
@@ -19,6 +19,15 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
 }
 
+function monthStart() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+}
+function monthEnd() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -34,13 +43,27 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard({ entries }) {
+  const [dateFrom, setDateFrom] = useState(monthStart());
+  const [dateTo, setDateTo] = useState(monthEnd());
+
+  const filtered = useMemo(() => {
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo + 'T23:59:59') : null;
+    return entries.filter(e => {
+      const d = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }, [entries, dateFrom, dateTo]);
+
   const stats = useMemo(() => {
-    const ricavi = entries.filter(e => e.type === 'ricavo').reduce((s, e) => s + e.amount, 0);
-    const costi = entries.filter(e => e.type === 'costo').reduce((s, e) => s + e.amount, 0);
-    const crediti = entries.filter(e => e.type === 'credito' && e.status === 'in_sospeso').reduce((s, e) => s + e.amount, 0);
-    const debiti = entries.filter(e => e.type === 'debito' && e.status === 'in_sospeso').reduce((s, e) => s + e.amount, 0);
+    const ricavi = filtered.filter(e => e.type === 'ricavo').reduce((s, e) => s + e.amount, 0);
+    const costi = filtered.filter(e => e.type === 'costo').reduce((s, e) => s + e.amount, 0);
+    const crediti = filtered.filter(e => e.type === 'credito' && e.status === 'in_sospeso').reduce((s, e) => s + e.amount, 0);
+    const debiti = filtered.filter(e => e.type === 'debito' && e.status === 'in_sospeso').reduce((s, e) => s + e.amount, 0);
     return { ricavi, costi, saldo: ricavi - costi, crediti, debiti };
-  }, [entries]);
+  }, [filtered]);
 
   const monthlyData = useMemo(() => {
     const year = new Date().getFullYear();
@@ -56,27 +79,35 @@ export default function Dashboard({ entries }) {
   }, [entries]);
 
   const recentEntries = useMemo(() =>
-    [...entries]
+    [...filtered]
       .sort((a, b) => {
         const da = a.date?.toDate ? a.date.toDate() : new Date(a.date);
         const db2 = b.date?.toDate ? b.date.toDate() : new Date(b.date);
         return db2 - da;
       })
       .slice(0, 8),
-    [entries]
+    [filtered]
   );
 
   const kpis = [
-    { label: 'Ricavi totali', value: stats.ricavi, color: '#16a34a', bg: '#dcfce7' },
-    { label: 'Costi totali', value: stats.costi, color: '#dc2626', bg: '#fee2e2' },
+    { label: 'Ricavi', value: stats.ricavi, color: '#16a34a', bg: '#dcfce7' },
+    { label: 'Costi', value: stats.costi, color: '#dc2626', bg: '#fee2e2' },
     { label: 'Saldo netto', value: stats.saldo, color: stats.saldo >= 0 ? '#16a34a' : '#dc2626', bg: stats.saldo >= 0 ? '#dcfce7' : '#fee2e2' },
-    { label: 'Crediti in sospeso', value: stats.crediti, color: '#d97706', bg: '#fef3c7' },
-    { label: 'Debiti in sospeso', value: stats.debiti, color: '#7c3aed', bg: '#ede9fe' },
+    { label: 'Crediti in sospeso', value: stats.crediti, color: '#7c3aed', bg: '#ede9fe' },
+    { label: 'Debiti in sospeso', value: stats.debiti, color: '#d97706', bg: '#fef3c7' },
   ];
 
   return (
     <div className="page dashboard-page">
-      <h2 className="page-title">Dashboard <span className="year-badge">{new Date().getFullYear()}</span></h2>
+      <div className="dash-header">
+        <h2 className="page-title" style={{ marginBottom: 0 }}>Dashboard</h2>
+        <div className="filter-date-group">
+          <label className="filter-date-label">Dal</label>
+          <input className="filter-date-input" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <label className="filter-date-label">Al</label>
+          <input className="filter-date-input" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+        </div>
+      </div>
 
       {/* KPI */}
       <div className="kpi-grid">
@@ -88,10 +119,10 @@ export default function Dashboard({ entries }) {
         ))}
       </div>
 
-      {/* Charts row — su desktop affiancati */}
+      {/* Charts row */}
       <div className="charts-row">
         <div className="card chart-card">
-          <h3 className="section-title">Ricavi vs Costi</h3>
+          <h3 className="section-title">Ricavi vs Costi <span className="year-badge">{new Date().getFullYear()}</span></h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -108,7 +139,7 @@ export default function Dashboard({ entries }) {
         </div>
 
         <div className="card chart-card">
-          <h3 className="section-title">Andamento saldo</h3>
+          <h3 className="section-title">Andamento saldo <span className="year-badge">{new Date().getFullYear()}</span></h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -124,10 +155,9 @@ export default function Dashboard({ entries }) {
         </div>
       </div>
 
-      {/* Ultime voci — su desktop a destra */}
       {recentEntries.length > 0 && (
         <div className="card">
-          <h3 className="section-title">Ultime voci</h3>
+          <h3 className="section-title">Voci nel periodo</h3>
           <div className="recent-list">
             {recentEntries.map(e => {
               const t = ENTRY_TYPES[e.type];
