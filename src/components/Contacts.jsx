@@ -2,11 +2,11 @@ import { useState } from 'react';
 import Categories from './Categories';
 
 export const CONTACT_TYPES = [
-  { key: 'cliente', label: 'Cliente', color: '#16a34a', bg: '#dcfce7' },
-  { key: 'fornitore', label: 'Fornitore', color: '#dc2626', bg: '#fee2e2' },
-  { key: 'collaboratore', label: 'Collaboratore', color: '#2563eb', bg: '#dbeafe' },
-  { key: 'banca_ente', label: 'Banca / Ente', color: '#7c3aed', bg: '#ede9fe' },
-  { key: 'altro', label: 'Altro', color: '#64748b', bg: '#f1f5f9' },
+  { key: 'cliente', label: 'Cliente', plural: 'Clienti', color: '#16a34a', bg: '#dcfce7' },
+  { key: 'fornitore', label: 'Fornitore', plural: 'Fornitori', color: '#dc2626', bg: '#fee2e2' },
+  { key: 'collaboratore', label: 'Collaboratore', plural: 'Collaboratori', color: '#2563eb', bg: '#dbeafe' },
+  { key: 'banca_ente', label: 'Banca / Ente', plural: 'Banche / Enti', color: '#7c3aed', bg: '#ede9fe' },
+  { key: 'altro', label: 'Altro', plural: 'Altri', color: '#64748b', bg: '#f1f5f9' },
 ];
 
 const TYPE_COUNTS = (contacts) => {
@@ -79,7 +79,7 @@ export default function Contacts({ contacts, onAdd, onDelete, categories, onAddC
         {CONTACT_TYPES.map(t => (
           <div key={t.key} className="contact-summary-chip" style={{ background: t.bg, color: t.color }}>
             <span className="cs-count">{counts[t.key] || 0}</span>
-            <span className="cs-label">{t.label}{(counts[t.key] || 0) !== 1 ? 'i' : 'e'}</span>
+            <span className="cs-label">{(counts[t.key] || 0) === 1 ? t.label : t.plural}</span>
           </div>
         ))}
       </div>
