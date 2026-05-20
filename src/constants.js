@@ -1,8 +1,8 @@
 export const ENTRY_TYPES = {
   ricavo: { label: 'Ricavo', color: '#16a34a', bg: '#dcfce7', icon: '↑' },
   costo: { label: 'Costo', color: '#dc2626', bg: '#fee2e2', icon: '↓' },
-  credito: { label: 'Credito', color: '#d97706', bg: '#fef3c7', icon: '⏳' },
-  debito: { label: 'Debito', color: '#7c3aed', bg: '#ede9fe', icon: '⚠' },
+  credito: { label: 'Credito', color: '#7c3aed', bg: '#ede9fe', icon: '⏳' },
+  debito: { label: 'Debito', color: '#d97706', bg: '#fef3c7', icon: '⚠' },
 };
 
 export function buildCategories(type, customCategories) {
