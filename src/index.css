@@ -777,6 +777,12 @@ body { background: var(--bg); }
   padding-top: 12px;
 }
 
+.entry-date { font-size: 12px; color: var(--text-muted); }
+.rev-entries-count { font-size: 11px; font-weight: 600; color: var(--primary); background: #dbeafe; padding: 1px 8px; border-radius: 20px; }
+
+.rev-subentries { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+.rev-subentry-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; background: #f0fdf4; border-radius: var(--radius-sm); }
+
 .rev-cost-row {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 8px 12px; background: var(--surface);

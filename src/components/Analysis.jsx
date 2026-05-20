@@ -5,7 +5,7 @@ import { ENTRY_TYPES } from '../constants';
 const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#65a30d'];
 
 function fmt(n) {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
 }
 function pct(part, total) {
   if (!total) return '0%';
@@ -127,8 +127,23 @@ function PerRicavo({ entries }) {
     [entries]
   );
 
+  // Raggruppa per descrizione + contatto
+  const grouped = useMemo(() => {
+    const map = new Map();
+    ricavi.forEach(r => {
+      const key = `${r.description}||${r.contactName || ''}`;
+      if (!map.has(key)) {
+        map.set(key, { key, entries: [r], description: r.description, contactName: r.contactName, contactType: r.contactType });
+      } else {
+        map.get(key).entries.push(r);
+      }
+    });
+    return [...map.values()];
+  }, [ricavi]);
+
+  // Solo costi non collegati — i debiti non vanno qui
   const costiNonCollegati = useMemo(() =>
-    entries.filter(e => (e.type === 'costo' || e.type === 'debito') && !e.linkedEntryId && !e.linkedRevenueId),
+    entries.filter(e => e.type === 'costo' && !e.linkedEntryId && !e.linkedRevenueId),
     [entries]
   );
 
@@ -145,35 +160,45 @@ function PerRicavo({ entries }) {
     return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  if (ricavi.length === 0) {
+  if (grouped.length === 0 && costiNonCollegati.length === 0) {
     return <div className="empty-state">Nessun ricavo ancora inserito.</div>;
   }
 
   return (
     <div className="revenue-breakdown">
-      {ricavi.map(r => {
-        const costi = getCostiFor(r.id);
-        const totaleCosti = costi.reduce((s, e) => s + e.amount, 0);
-        const margine = r.amount - totaleCosti;
-        const isOpen = selectedId === r.id;
+      {grouped.map(group => {
+        const costi = group.entries.flatMap(r => getCostiFor(r.id));
+        const totalRicavo = group.entries.reduce((s, r) => s + r.amount, 0);
+        const totaleCosti = costi.reduce((s, c) => s + c.amount, 0);
+        const margine = totalRicavo - totaleCosti;
+        const isOpen = selectedId === group.key;
+        const latestDate = group.entries.reduce((latest, r) => {
+          const d = r.date?.toDate ? r.date.toDate() : new Date(r.date);
+          return d > latest ? d : latest;
+        }, new Date(0));
 
         return (
-          <div key={r.id} className={`revenue-card ${isOpen ? 'open' : ''}`}>
-            <div className="revenue-card-header" onClick={() => setSelectedId(isOpen ? null : r.id)}>
+          <div key={group.key} className={`revenue-card ${isOpen ? 'open' : ''}`}>
+            <div className="revenue-card-header" onClick={() => setSelectedId(isOpen ? null : group.key)}>
               <div className="revenue-card-left">
                 <span className="revenue-toggle">{isOpen ? '▾' : '▸'}</span>
                 <div>
-                  <p className="revenue-name">{r.description}</p>
+                  <p className="revenue-name">{group.description}</p>
                   <div className="revenue-meta">
-                    {r.contactName && <span className="contact-chip" style={{ background: '#dcfce7', color: '#16a34a' }}>{r.contactName}</span>}
-                    <span className="entry-date">{fmtDate(r.date)}</span>
+                    {group.contactName && (
+                      <span className="contact-chip" style={{ background: '#dcfce7', color: '#16a34a' }}>{group.contactName}</span>
+                    )}
+                    <span className="entry-date">{fmtDate(latestDate)}</span>
+                    {group.entries.length > 1 && (
+                      <span className="rev-entries-count">{group.entries.length} voci</span>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="revenue-card-kpis">
                 <div className="rev-kpi">
                   <span className="rev-kpi-label">Ricavo</span>
-                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(r.amount)}</span>
+                  <span className="rev-kpi-value" style={{ color: '#16a34a' }}>{fmt(totalRicavo)}</span>
                 </div>
                 <div className="rev-kpi">
                   <span className="rev-kpi-label">Costi</span>
@@ -188,6 +213,16 @@ function PerRicavo({ entries }) {
 
             {isOpen && (
               <div className="revenue-card-detail">
+                {group.entries.length > 1 && (
+                  <div className="rev-subentries">
+                    {group.entries.map(r => (
+                      <div key={r.id} className="rev-subentry-row">
+                        <span className="rev-cost-desc" style={{ color: '#64748b', fontSize: 12 }}>{fmtDate(r.date)}</span>
+                        <span className="rev-cost-amount" style={{ color: '#16a34a' }}>{fmt(r.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {costi.length === 0 ? (
                   <p className="cat-empty">Nessun costo collegato a questo ricavo.</p>
                 ) : (
