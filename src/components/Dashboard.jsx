@@ -19,13 +19,11 @@ function fmtDate(val) {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
 }
 
-function monthStart() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+function yearStart() {
+  return new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 }
-function monthEnd() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+function yearEnd() {
+  return new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0];
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -43,8 +41,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard({ entries }) {
-  const [dateFrom, setDateFrom] = useState(monthStart());
-  const [dateTo, setDateTo] = useState(monthEnd());
+  const [dateFrom, setDateFrom] = useState(yearStart());
+  const [dateTo, setDateTo] = useState(yearEnd());
 
   const filtered = useMemo(() => {
     const from = dateFrom ? new Date(dateFrom) : null;

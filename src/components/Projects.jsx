@@ -371,10 +371,10 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
       {/* KPI grid */}
       <div className="proj-kpi-grid">
         <div className="proj-kpi"><span className="proj-kpi-label">Incassato</span><span className="proj-kpi-value" style={{ color: '#16a34a' }}>{fmt(ricavi)}</span></div>
-        <div className="proj-kpi"><span className="proj-kpi-label">Da incassare</span><span className="proj-kpi-value" style={{ color: crediti > 0 ? '#d97706' : '#94a3b8' }}>{fmt(crediti)}</span></div>
+        <div className="proj-kpi"><span className="proj-kpi-label">Da incassare</span><span className="proj-kpi-value" style={{ color: crediti > 0 ? ENTRY_TYPES.credito.color : '#94a3b8' }}>{fmt(crediti)}</span></div>
         <div className="proj-kpi"><span className="proj-kpi-label">Da fatturare</span><span className="proj-kpi-value" style={{ color: daFatturare > 0 ? '#2563eb' : '#94a3b8' }}>{fmt(daFatturare)}</span></div>
         <div className="proj-kpi"><span className="proj-kpi-label">Costi pagati</span><span className="proj-kpi-value" style={{ color: costi > 0 ? '#dc2626' : '#94a3b8' }}>{fmt(costi)}</span></div>
-        <div className="proj-kpi"><span className="proj-kpi-label">Debiti</span><span className="proj-kpi-value" style={{ color: debiti > 0 ? '#7c3aed' : '#94a3b8' }}>{fmt(debiti)}</span></div>
+        <div className="proj-kpi"><span className="proj-kpi-label">Debiti</span><span className="proj-kpi-value" style={{ color: debiti > 0 ? ENTRY_TYPES.debito.color : '#94a3b8' }}>{fmt(debiti)}</span></div>
         <div className="proj-kpi proj-kpi-accent"><span className="proj-kpi-label">Margine oggi</span><span className="proj-kpi-value" style={{ color: margineOggi >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(margineOggi)}</span></div>
         <div className="proj-kpi"><span className="proj-kpi-label">Margine completamento</span><span className="proj-kpi-value" style={{ color: margineCompletamento >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(margineCompletamento)}</span></div>
       </div>
@@ -492,7 +492,7 @@ function ProjectCard({ project, entries, onClick }) {
         </div>
         <div className="proj-card-kpi">
           <span className="proj-kpi-label">Crediti</span>
-          <span style={{ color: crediti > 0 ? '#d97706' : '#94a3b8', fontWeight: 700, fontSize: 13 }}>{fmt(crediti)}</span>
+          <span style={{ color: crediti > 0 ? ENTRY_TYPES.credito.color : '#94a3b8', fontWeight: 700, fontSize: 13 }}>{fmt(crediti)}</span>
         </div>
         <div className="proj-card-kpi">
           <span className="proj-kpi-label">Costi</span>
