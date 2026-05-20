@@ -1,21 +1,12 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
+import { LinkedEntrySelect } from './LinkedEntrySelect';
 
 function toDateInput(val) {
   if (!val) return '';
   const d = val?.toDate ? val.toDate() : new Date(val);
   return d.toISOString().split('T')[0];
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
-}
-
-function fmtDate(val) {
-  if (!val) return '';
-  const d = val?.toDate ? val.toDate() : new Date(val);
-  return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function EditModal({ entry, contacts, customCategories, entries, onSave, onClose }) {
@@ -28,19 +19,20 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     status: entry.status || 'completato',
     notes: entry.notes || '',
     contactId: entry.contactId || '',
-    linkedRevenueId: entry.linkedRevenueId || '',
+    // supporta sia il vecchio linkedRevenueId che il nuovo linkedEntryId
+    linkedEntryId: entry.linkedEntryId || entry.linkedRevenueId || '',
   });
   const [saving, setSaving] = useState(false);
 
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
-  const ricavi = entries.filter(e => e.type === 'ricavo' && e.id !== entry.id);
+  const canLink = form.type === 'costo' || form.type === 'debito';
 
   function set(field, value) {
     setForm(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'type' ? { category: '', linkedRevenueId: '' } : {}),
+      ...(field === 'type' ? { category: '', linkedEntryId: '' } : {}),
     }));
   }
 
@@ -49,7 +41,7 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     if (!form.amount || !form.description) return;
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
-    const linkedRevenue = ricavi.find(r => r.id === form.linkedRevenueId);
+    const linked = entries.find(r => r.id === form.linkedEntryId);
     await onSave(entry.id, {
       type: form.type,
       category: form.category || null,
@@ -61,8 +53,11 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
       contactId: form.contactId || null,
       contactName: contact?.name || null,
       contactType: contact?.type || null,
-      linkedRevenueId: linkedRevenue?.id || null,
-      linkedRevenueDescription: linkedRevenue?.description || null,
+      linkedEntryId: linked?.id || null,
+      linkedEntryDescription: linked?.description || null,
+      linkedEntryType: linked?.type || null,
+      linkedRevenueId: null,
+      linkedRevenueDescription: null,
     });
     setSaving(false);
     onClose();
@@ -90,8 +85,7 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
 
             <label className="field-label">Importo (€) *</label>
             <input className="field-input" type="number" inputMode="decimal"
-              value={form.amount} onChange={e => set('amount', e.target.value)}
-              required min="0" step="0.01" />
+              value={form.amount} onChange={e => set('amount', e.target.value)} required min="0" step="0.01" />
 
             <label className="field-label">Descrizione *</label>
             <input className="field-input" type="text"
@@ -116,22 +110,14 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
               })}
             </select>
 
-            {form.type === 'costo' && (
-              <>
-                <label className="field-label">Collega a ricavo</label>
-                {ricavi.length === 0 ? (
-                  <p className="field-hint">Nessun ricavo disponibile.</p>
-                ) : (
-                  <select className="field-input" value={form.linkedRevenueId} onChange={e => set('linkedRevenueId', e.target.value)}>
-                    <option value="">Nessuno</option>
-                    {ricavi.map(r => (
-                      <option key={r.id} value={r.id}>
-                        {r.description}{r.contactName ? ` — ${r.contactName}` : ''} ({fmt(r.amount)}, {fmtDate(r.date)})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </>
+            {canLink && (
+              <LinkedEntrySelect
+                entryType={form.type}
+                entries={entries}
+                value={form.linkedEntryId}
+                onChange={v => set('linkedEntryId', v)}
+                excludeId={entry.id}
+              />
             )}
 
             <label className="field-label">Data</label>

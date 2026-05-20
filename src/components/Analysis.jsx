@@ -119,7 +119,7 @@ function PerRicavo({ entries }) {
   const [selectedId, setSelectedId] = useState(null);
 
   const ricavi = useMemo(() =>
-    entries.filter(e => e.type === 'ricavo').sort((a, b) => {
+    entries.filter(e => e.type === 'ricavo' || e.type === 'credito').sort((a, b) => {
       const da = a.date?.toDate ? a.date.toDate() : new Date(a.date);
       const db2 = b.date?.toDate ? b.date.toDate() : new Date(b.date);
       return db2 - da;
@@ -128,12 +128,15 @@ function PerRicavo({ entries }) {
   );
 
   const costiNonCollegati = useMemo(() =>
-    entries.filter(e => e.type === 'costo' && !e.linkedRevenueId),
+    entries.filter(e => (e.type === 'costo' || e.type === 'debito') && !e.linkedEntryId && !e.linkedRevenueId),
     [entries]
   );
 
-  function getCostiFor(revenueId) {
-    return entries.filter(e => e.type === 'costo' && e.linkedRevenueId === revenueId);
+  function getCostiFor(id) {
+    return entries.filter(e =>
+      (e.type === 'costo' || e.type === 'debito') &&
+      (e.linkedEntryId === id || e.linkedRevenueId === id)
+    );
   }
 
   function fmtDate(val) {
