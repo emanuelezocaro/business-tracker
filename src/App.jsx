@@ -6,6 +6,7 @@ import Analysis from './components/Analysis';
 import Contacts from './components/Contacts';
 import { useEntries } from './hooks/useEntries';
 import { useContacts } from './hooks/useContacts';
+import { useCategories } from './hooks/useCategories';
 import './index.css';
 
 const TABS = [
@@ -13,20 +14,21 @@ const TABS = [
   { id: 'add', label: 'Aggiungi', icon: '+' },
   { id: 'list', label: 'Voci', icon: '≡' },
   { id: 'analysis', label: 'Analisi', icon: '◉' },
-  { id: 'contacts', label: 'Contatti', icon: '👤' },
+  { id: 'contacts', label: 'Gestione', icon: '⚙' },
 ];
 
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus } = useEntries();
   const { contacts, loading: loadingContacts, addContact, deleteContact } = useContacts();
+  const { categories, loading: loadingCategories, addCategory, deleteCategory } = useCategories();
 
   async function handleAdd(data) {
     await addEntry(data);
     setTab('list');
   }
 
-  if (loadingEntries || loadingContacts) {
+  if (loadingEntries || loadingContacts || loadingCategories) {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
@@ -38,10 +40,10 @@ export default function App() {
   const content = (
     <>
       {tab === 'dashboard' && <Dashboard entries={entries} />}
-      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} />}
+      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} />}
       {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} />}
       {tab === 'analysis' && <Analysis entries={entries} />}
-      {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} />}
+      {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />}
     </>
   );
 

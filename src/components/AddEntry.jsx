@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ENTRY_TYPES, CATEGORIES, STATUS_OPTIONS } from '../constants';
+import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export default function AddEntry({ onAdd, contacts = [] }) {
+export default function AddEntry({ onAdd, contacts = [], customCategories = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
@@ -19,7 +19,7 @@ export default function AddEntry({ onAdd, contacts = [] }) {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const categories = CATEGORIES[form.type] || [];
+  const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
 
   function set(field, value) {

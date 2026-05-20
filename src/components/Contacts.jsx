@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Categories from './Categories';
 
 export const CONTACT_TYPES = [
   { key: 'cliente', label: 'Cliente', color: '#16a34a', bg: '#dcfce7' },
@@ -14,7 +15,8 @@ const TYPE_COUNTS = (contacts) => {
   return counts;
 };
 
-export default function Contacts({ contacts, onAdd, onDelete }) {
+export default function Contacts({ contacts, onAdd, onDelete, categories, onAddCategory, onDeleteCategory }) {
+  const [section, setSection] = useState('contatti');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'cliente', notes: '' });
   const [saving, setSaving] = useState(false);
@@ -42,11 +44,35 @@ export default function Contacts({ contacts, onAdd, onDelete }) {
   return (
     <div className="page">
       <div className="page-header-row">
-        <h2 className="page-title">Contatti <span className="year-badge">{contacts.length}</span></h2>
-        <button className="btn-add" onClick={() => setShowForm(v => !v)}>
-          {showForm ? '✕ Chiudi' : '+ Nuovo'}
+        <h2 className="page-title">Gestione</h2>
+        {section === 'contatti' && (
+          <button className="btn-add" onClick={() => setShowForm(v => !v)}>
+            {showForm ? '✕ Chiudi' : '+ Nuovo'}
+          </button>
+        )}
+      </div>
+
+      {/* Sotto-navigazione */}
+      <div className="subnav">
+        <button className={`subnav-btn ${section === 'contatti' ? 'active' : ''}`} onClick={() => setSection('contatti')}>
+          Contatti <span className="subnav-badge">{contacts.length}</span>
+        </button>
+        <button className={`subnav-btn ${section === 'categorie' ? 'active' : ''}`} onClick={() => setSection('categorie')}>
+          Categorie <span className="subnav-badge">{categories?.length || 0} custom</span>
         </button>
       </div>
+
+      {section === 'categorie' && (
+        <div className="card">
+          <Categories
+            categories={categories || []}
+            onAdd={onAddCategory}
+            onDelete={onDeleteCategory}
+          />
+        </div>
+      )}
+
+      {section === 'contatti' && (<>
 
       {/* Sommario per tipo */}
       <div className="contact-summary">
@@ -179,6 +205,7 @@ export default function Contacts({ contacts, onAdd, onDelete }) {
           })}
         </div>
       )}
+      </>)}
     </div>
   );
 }
