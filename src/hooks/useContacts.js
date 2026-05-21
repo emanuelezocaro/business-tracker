@@ -19,7 +19,8 @@ export function useContacts() {
   }, []);
 
   async function addContact(data) {
-    await addDoc(collection(db, 'contacts'), { ...data, createdAt: serverTimestamp() });
+    const ref = await addDoc(collection(db, 'contacts'), { ...data, createdAt: serverTimestamp() });
+    return { id: ref.id, ...data };
   }
 
   async function updateContact(id, data) {

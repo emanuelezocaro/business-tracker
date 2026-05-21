@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS, IVA_RATES, calcNetto, calcLordo, calcIva } from '../constants';
-import { CONTACT_TYPES } from './Contacts';
+import ContactPicker from './ContactPicker';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -10,7 +10,7 @@ function fmtPreview(n) {
   return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 
-export default function AddEntry({ onAdd, contacts = [], customCategories = [], entries = [], projects = [] }) {
+export default function AddEntry({ onAdd, onAddContact, contacts = [], customCategories = [], entries = [], projects = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
@@ -22,6 +22,8 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
     status: 'completato',
     notes: '',
     contactId: '',
+    contactName: '',
+    contactType: '',
     projectId: '',
   });
   const [saving, setSaving] = useState(false);
@@ -62,13 +64,13 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
       status:      needsStatus ? form.status : 'completato',
       notes:       form.notes,
       contactId:   form.contactId  || null,
-      contactName: contact?.name   || null,
-      contactType: contact?.type   || null,
+      contactName: contact?.name   || form.contactName  || null,
+      contactType: contact?.type   || form.contactType  || null,
       projectId:   form.projectId  || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', date: today(), status: 'completato', notes: '', contactId: '', projectId: '' });
+    setForm({ type: form.type, category: '', amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', date: today(), status: 'completato', notes: '', contactId: '', contactName: '', contactType: '', projectId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -146,13 +148,13 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
         )}
 
         <label className="field-label">Contatto collegato</label>
-        <select className="field-input" value={form.contactId} onChange={e => set('contactId', e.target.value)}>
-          <option value="">Nessuno</option>
-          {contacts.map(c => {
-            const t = CONTACT_TYPES.find(x => x.key === c.type);
-            return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
-          })}
-        </select>
+        <ContactPicker
+          contacts={contacts}
+          value={form.contactId}
+          onChange={(id, name, type) => setForm(f => ({ ...f, contactId: id, contactName: name, contactType: type }))}
+          onAddContact={onAddContact}
+          defaultType={form.type === 'ricavo' || form.type === 'credito' ? 'cliente' : 'fornitore'}
+        />
 
         <label className="field-label">Data</label>
         <input className="field-input" type="date" value={form.date} onChange={e => set('date', e.target.value)} />

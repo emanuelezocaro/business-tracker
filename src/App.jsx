@@ -43,8 +43,8 @@ export default function App() {
     <>
       {tab === 'dashboard' && <Dashboard entries={entries} projects={projects} contacts={contacts} />}
       {tab === 'progetti' && <Projects projects={projects} entries={entries} contacts={contacts} customCategories={categories} onAdd={addProject} onUpdate={updateProject} onDelete={deleteProject} onAddEntry={addEntry} />}
-      {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} projects={projects} />}
-      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} projects={projects} />}
+      {tab === 'add' && <AddEntry onAdd={handleAdd} onAddContact={addContact} contacts={contacts} customCategories={categories} entries={entries} projects={projects} />}
+      {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} onAddContact={addContact} contacts={contacts} customCategories={categories} projects={projects} />}
       {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onUpdate={updateContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onUpdateCategory={updateCategory} onDeleteCategory={deleteCategory} />}
     </>
   );

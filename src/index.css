@@ -1313,6 +1313,168 @@ body { background: var(--bg); }
   vertical-align: middle;
 }
 
+/* ===================== CONTACT PICKER ===================== */
+
+.contact-picker {
+  position: relative;
+  width: 100%;
+}
+
+.cp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cp-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.cp-input {
+  padding-left: 36px !important;
+  padding-right: 36px !important;
+  width: 100%;
+}
+
+.cp-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.cp-clear:hover { color: var(--text); background: var(--bg); }
+
+.cp-selected-badge {
+  margin-top: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+/* Dropdown */
+.cp-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  z-index: 200;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.cp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.cp-item:hover { background: var(--bg); }
+.cp-item--selected { background: var(--bg); }
+
+.cp-item-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cp-item-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cp-empty {
+  padding: 14px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+}
+
+/* Riga Crea */
+.cp-create-row {
+  border-top: 1px solid var(--border);
+}
+
+.cp-create-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--primary);
+  transition: background .12s;
+}
+.cp-create-trigger:hover { background: var(--bg); }
+
+.cp-create-plus {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.cp-create-panel {
+  padding: 14px;
+  background: var(--bg);
+}
+
+.cp-type-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.cp-type-pill {
+  padding: 5px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+}
+.cp-type-pill:hover { border-color: var(--primary); color: var(--primary); }
+.cp-type-pill.active { font-weight: 600; }
+
 /* ===================== MISC ===================== */
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 15px; }

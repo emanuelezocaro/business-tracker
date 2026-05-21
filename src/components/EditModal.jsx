@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS, IVA_RATES, calcNetto, calcLordo, calcIva } from '../constants';
-import { CONTACT_TYPES } from './Contacts';
+import ContactPicker from './ContactPicker';
 
 function toDateInput(val) {
   if (!val) return '';
@@ -14,7 +14,7 @@ function fmtPreview(n) {
   return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 
-export default function EditModal({ entry, contacts, customCategories, entries, projects = [], onSave, onClose }) {
+export default function EditModal({ entry, contacts, customCategories, entries, projects = [], onSave, onClose, onAddContact }) {
   const [form, setForm] = useState({
     type:        entry.type,
     category:    entry.category    || '',
@@ -26,6 +26,8 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     status:      entry.status      || 'completato',
     notes:       entry.notes       || '',
     contactId:   entry.contactId   || '',
+    contactName: entry.contactName || '',
+    contactType: entry.contactType || '',
     projectId:   entry.projectId   || '',
   });
   const [saving, setSaving] = useState(false);
@@ -63,8 +65,8 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
       status:      needsStatus ? form.status : 'completato',
       notes:       form.notes,
       contactId:   form.contactId  || null,
-      contactName: contact?.name   || null,
-      contactType: contact?.type   || null,
+      contactName: contact?.name   || form.contactName || null,
+      contactType: contact?.type   || form.contactType || null,
       projectId:   form.projectId  || null,
     });
     setSaving(false);
@@ -150,13 +152,13 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
             )}
 
             <label className="field-label">Contatto collegato</label>
-            <select className="field-input" value={form.contactId} onChange={e => set('contactId', e.target.value)}>
-              <option value="">Nessuno</option>
-              {contacts.map(c => {
-                const t = CONTACT_TYPES.find(x => x.key === c.type);
-                return <option key={c.id} value={c.id}>{c.name} — {t?.label || c.type}</option>;
-              })}
-            </select>
+            <ContactPicker
+              contacts={contacts}
+              value={form.contactId}
+              onChange={(id, name, type) => setForm(f => ({ ...f, contactId: id, contactName: name, contactType: type }))}
+              onAddContact={onAddContact}
+              defaultType={form.type === 'ricavo' || form.type === 'credito' ? 'cliente' : 'fornitore'}
+            />
 
             <label className="field-label">Data</label>
             <input className="field-input" type="date"

@@ -126,7 +126,7 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
   );
 }
 
-export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, onAdd, contacts, customCategories, projects = [] }) {
+export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate, onAdd, onAddContact, contacts, customCategories, projects = [] }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
   const [paymentEntry, setPaymentEntry] = useState(null);
@@ -372,6 +372,7 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
           projects={projects}
           onSave={onUpdate}
           onClose={() => setEditEntry(null)}
+          onAddContact={onAddContact}
         />
       )}
 
