@@ -16,11 +16,12 @@ export function useProjects() {
   }, []);
 
   async function addProject(data) {
-    await addDoc(collection(db, 'projects'), {
+    const ref = await addDoc(collection(db, 'projects'), {
       ...data,
       value: parseFloat(data.value) || 0,
       createdAt: serverTimestamp(),
     });
+    return ref.id;
   }
 
   async function updateProject(id, data) {

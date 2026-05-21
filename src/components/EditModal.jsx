@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
+import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS, IVA_RATES, calcNetto, calcLordo, calcIva } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 
 function toDateInput(val) {
@@ -8,22 +8,37 @@ function toDateInput(val) {
   return d.toISOString().split('T')[0];
 }
 
+function fmtPreview(n) {
+  if (!n || isNaN(n)) return '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
+}
+
 export default function EditModal({ entry, contacts, customCategories, entries, projects = [], onSave, onClose }) {
   const [form, setForm] = useState({
-    type: entry.type,
-    category: entry.category || '',
-    amount: entry.amount,
+    type:        entry.type,
+    category:    entry.category    || '',
+    amount:      entry.amount,
+    ivaRate:     entry.ivaRate     ?? 22,
+    ivaMode:     'lordo',   // in modifica si parte sempre da lordo (valore già salvato)
     description: entry.description || '',
-    date: toDateInput(entry.date),
-    status: entry.status || 'completato',
-    notes: entry.notes || '',
-    contactId: entry.contactId || '',
-    projectId: entry.projectId || '',
+    date:        toDateInput(entry.date),
+    status:      entry.status      || 'completato',
+    notes:       entry.notes       || '',
+    contactId:   entry.contactId   || '',
+    projectId:   entry.projectId   || '',
   });
   const [saving, setSaving] = useState(false);
 
-  const categories = buildCategories(form.type, customCategories);
+  const categories  = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
+
+  const amountNum   = parseFloat(form.amount);
+  const hasIva      = form.ivaRate > 0 && form.amount && !isNaN(amountNum);
+  const lordoVal    = hasIva ? (form.ivaMode === 'netto' ? calcLordo(amountNum, form.ivaRate) : amountNum) : null;
+  const nettoVal    = hasIva ? (form.ivaMode === 'lordo' ? calcNetto(amountNum, form.ivaRate) : amountNum) : null;
+  const ivaVal      = hasIva ? calcIva(lordoVal, form.ivaRate) : null;
+  const savedAmount = hasIva && form.ivaMode === 'netto' ? lordoVal : amountNum;
 
   function set(field, value) {
     setForm(prev => ({
@@ -39,17 +54,18 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
     await onSave(entry.id, {
-      type: form.type,
-      category: form.category || null,
-      amount: form.amount,
+      type:        form.type,
+      category:    form.category   || null,
+      amount:      savedAmount,    // sempre lordo
+      ivaRate:     form.ivaRate,
       description: form.description,
-      date: new Date(form.date),
-      status: needsStatus ? form.status : 'completato',
-      notes: form.notes,
-      contactId: form.contactId || null,
-      contactName: contact?.name || null,
-      contactType: contact?.type || null,
-      projectId: form.projectId || null,
+      date:        new Date(form.date),
+      status:      needsStatus ? form.status : 'completato',
+      notes:       form.notes,
+      contactId:   form.contactId  || null,
+      contactName: contact?.name   || null,
+      contactType: contact?.type   || null,
+      projectId:   form.projectId  || null,
     });
     setSaving(false);
     onClose();
@@ -75,9 +91,49 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
               ))}
             </div>
 
-            <label className="field-label">Importo (€) *</label>
-            <input className="field-input" type="number" inputMode="decimal"
-              value={form.amount} onChange={e => set('amount', e.target.value)} required min="0" step="0.01" />
+            {/* Importo + IVA */}
+            <div className="amount-iva-row">
+              <div className="amount-iva-col">
+                <div className="field-label-row">
+                  <label className="field-label">Importo * ({form.ivaMode === 'lordo' ? 'lordo' : 'netto'})</label>
+                  <div className="ln-toggle">
+                    <button type="button" className={`ln-pill${form.ivaMode === 'lordo' ? ' active' : ''}`} onClick={() => set('ivaMode', 'lordo')}>Lordo</button>
+                    <button type="button" className={`ln-pill${form.ivaMode === 'netto' ? ' active' : ''}`} onClick={() => set('ivaMode', 'netto')}>Netto</button>
+                  </div>
+                </div>
+                <input className="field-input" type="number" inputMode="decimal"
+                  value={form.amount} onChange={e => set('amount', e.target.value)} required min="0" step="0.01" />
+              </div>
+              <div className="amount-iva-col amount-iva-col--iva">
+                <label className="field-label">Aliquota IVA</label>
+                <div className="iva-pills">
+                  {IVA_RATES.map(r => (
+                    <button key={r.value} type="button"
+                      className={`iva-pill${form.ivaRate === r.value ? ' active' : ''}`}
+                      onClick={() => set('ivaRate', r.value)}
+                    >{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Preview calcolo IVA */}
+            {hasIva && (
+              <div className="iva-breakdown">
+                {form.ivaMode === 'lordo' ? (
+                  <>
+                    <span>Scorpora IVA {form.ivaRate}% → <strong>{fmtPreview(ivaVal)}</strong></span>
+                    <span className="iva-breakdown-netto">Imponibile: <strong>{fmtPreview(nettoVal)}</strong></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Netto: <strong>{fmtPreview(amountNum)}</strong></span>
+                    <span>IVA {form.ivaRate}%: <strong>{fmtPreview(ivaVal)}</strong></span>
+                    <span className="iva-breakdown-netto">Lordo salvato: <strong>{fmtPreview(lordoVal)}</strong></span>
+                  </>
+                )}
+              </div>
+            )}
 
             <label className="field-label">Descrizione *</label>
             <input className="field-input" type="text"

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ENTRY_TYPES, STATUS_OPTIONS } from '../constants';
+import { ENTRY_TYPES, STATUS_OPTIONS, calcNetto } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 import EditModal from './EditModal';
 
@@ -82,6 +82,11 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
 
       <div className="ec-amount">
         <span className="entry-amount" style={{ color: t.color }}>{fmt(entry.amount)}</span>
+        {entry.ivaRate > 0 && (
+          <span className="entry-netto">
+            netto {fmt(calcNetto(entry.amount, entry.ivaRate))}
+          </span>
+        )}
       </div>
 
       <div className="ec-actions">
@@ -324,7 +329,6 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
       {filtered.length === 0 ? (
         <div className="empty-state">Nessuna voce trovata.</div>
       ) : (
-        <div className="entry-table-scroll">
         <div className="entry-table">
           <div className="entry-table-header">
             <SortTh col="type" sortCol={sortCol} sortDir={sortDir} onSort={toggleSort} className="ec-type">Tipo</SortTh>
@@ -348,7 +352,6 @@ export default function EntryList({ entries, onDelete, onUpdateStatus, onUpdate,
               setConfirmDelete={setConfirmDelete}
             />
           ))}
-        </div>
         </div>
       )}
 

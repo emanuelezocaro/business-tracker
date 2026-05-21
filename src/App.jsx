@@ -41,7 +41,7 @@ export default function App() {
 
   const content = (
     <>
-      {tab === 'dashboard' && <Dashboard entries={entries} />}
+      {tab === 'dashboard' && <Dashboard entries={entries} projects={projects} contacts={contacts} />}
       {tab === 'progetti' && <Projects projects={projects} entries={entries} contacts={contacts} customCategories={categories} onAdd={addProject} onUpdate={updateProject} onDelete={deleteProject} onAddEntry={addEntry} />}
       {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} projects={projects} />}
       {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} projects={projects} />}

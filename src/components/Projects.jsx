@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
+import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS, IVA_RATES, calcNetto, calcLordo, calcIva } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 import { PerCategoria } from './Analysis';
 
@@ -9,10 +9,16 @@ export const PROJECT_STATUSES = {
   sospeso:    { label: 'Sospeso',    color: '#d97706', bg: '#fef3c7' },
 };
 
-function fmt(n) {
+function fmt(n = 0) {
   const sign = n < 0 ? '-' : '';
   const [int, dec] = Math.abs(n).toFixed(2).split('.');
   return `${sign}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
+}
+
+function fmtPreview(n) {
+  if (!n || isNaN(n)) return '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
 }
 
 function fmtDate(val) {
@@ -23,27 +29,56 @@ function fmtDate(val) {
 
 const today = () => new Date().toISOString().split('T')[0];
 
-function getStats(project, entries) {
+/** Calcola il valore da mostrare in base al flag lordo/netto */
+function val(e, showNetto) {
+  return showNetto ? calcNetto(e.amount || 0, e.ivaRate || 0) : (e.amount || 0);
+}
+
+function getStats(project, entries, showNetto = false) {
   const pe = entries.filter(e => e.projectId === project.id);
-  const ricavi  = pe.filter(e => e.type === 'ricavo').reduce((s, e)  => s + e.amount, 0);
-  const crediti = pe.filter(e => e.type === 'credito').reduce((s, e) => s + e.amount, 0);
-  const costi   = pe.filter(e => e.type === 'costo').reduce((s, e)   => s + e.amount, 0);
-  const debiti  = pe.filter(e => e.type === 'debito').reduce((s, e)  => s + e.amount, 0);
+  const ricavi  = pe.filter(e => e.type === 'ricavo') .reduce((s, e) => s + val(e, showNetto), 0);
+  const crediti = pe.filter(e => e.type === 'credito').reduce((s, e) => s + val(e, showNetto), 0);
+  const costi   = pe.filter(e => e.type === 'costo')  .reduce((s, e) => s + val(e, showNetto), 0);
+  const debiti  = pe.filter(e => e.type === 'debito') .reduce((s, e) => s + val(e, showNetto), 0);
   const fatturato = ricavi + crediti;
-  const daFatturare = Math.max(0, (project.value || 0) - fatturato);
+  const projectValue = showNetto ? calcNetto(project.value || 0, project.ivaRate || 0) : (project.value || 0);
+  const daFatturare = Math.max(0, projectValue - fatturato);
   const margineOggi = ricavi - costi;
   const margineCompletamento = (ricavi + crediti) - (costi + debiti);
-  const pct = project.value ? Math.min(100, Math.round((fatturato / project.value) * 100)) : 0;
-  return { ricavi, crediti, costi, debiti, fatturato, daFatturare, margineOggi, margineCompletamento, pct, projectEntries: pe };
+  const pct = projectValue ? Math.min(100, Math.round((fatturato / projectValue) * 100)) : 0;
+  return { ricavi, crediti, costi, debiti, fatturato, daFatturare, margineOggi, margineCompletamento, pct, projectEntries: pe, projectValue };
+}
+
+/* ── Toggle Lordo/Netto ─────────────────────────────── */
+function NettoToggle({ showNetto, onChange }) {
+  return (
+    <div className="netto-toggle">
+      <button
+        className={`netto-pill${!showNetto ? ' active' : ''}`}
+        onClick={() => onChange(false)}
+      >Lordo</button>
+      <button
+        className={`netto-pill${showNetto ? ' active' : ''}`}
+        onClick={() => onChange(true)}
+      >Netto</button>
+    </div>
+  );
 }
 
 // ── Nuovo progetto ────────────────────────────────────
 
 function NewProjectModal({ contacts, onSave, onClose }) {
-  const [form, setForm] = useState({ name: '', contactId: '', value: '', status: 'in_corso', notes: '' });
+  const [form, setForm] = useState({ name: '', contactId: '', value: '', ivaRate: 22, ivaMode: 'lordo', status: 'in_corso', notes: '' });
   const [saving, setSaving] = useState(false);
 
   function set(f, v) { setForm(p => ({ ...p, [f]: v })); }
+
+  const amountNum  = parseFloat(form.value);
+  const hasIva     = form.ivaRate > 0 && form.value && !isNaN(amountNum);
+  const lordoVal   = hasIva ? (form.ivaMode === 'netto' ? calcLordo(amountNum, form.ivaRate) : amountNum) : null;
+  const nettoVal   = hasIva ? (form.ivaMode === 'lordo' ? calcNetto(amountNum, form.ivaRate) : amountNum) : null;
+  const ivaValPrev = hasIva ? calcIva(lordoVal, form.ivaRate) : null;
+  const savedValue = hasIva && form.ivaMode === 'netto' ? lordoVal : amountNum;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -51,13 +86,14 @@ function NewProjectModal({ contacts, onSave, onClose }) {
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
     await onSave({
-      name: form.name,
-      contactId: form.contactId || null,
-      contactName: contact?.name || null,
-      contactType: contact?.type || null,
-      value: form.value,
-      status: form.status,
-      notes: form.notes,
+      name:        form.name,
+      contactId:   form.contactId || null,
+      contactName: contact?.name  || null,
+      contactType: contact?.type  || null,
+      value:       savedValue || 0,  // sempre lordo
+      ivaRate:     form.ivaRate,
+      status:      form.status,
+      notes:       form.notes,
     });
     setSaving(false);
     onClose();
@@ -85,9 +121,47 @@ function NewProjectModal({ contacts, onSave, onClose }) {
               })}
             </select>
 
-            <label className="field-label">Valore concordato (€) *</label>
-            <input className="field-input" type="number" inputMode="decimal" placeholder="0,00" min="0" step="0.01"
-              value={form.value} onChange={e => set('value', e.target.value)} required />
+            {/* Valore concordato + IVA */}
+            <div className="amount-iva-row">
+              <div className="amount-iva-col">
+                <div className="field-label-row">
+                  <label className="field-label">Concordato * ({form.ivaMode === 'lordo' ? 'lordo' : 'netto'})</label>
+                  <div className="ln-toggle">
+                    <button type="button" className={`ln-pill${form.ivaMode === 'lordo' ? ' active' : ''}`} onClick={() => set('ivaMode', 'lordo')}>Lordo</button>
+                    <button type="button" className={`ln-pill${form.ivaMode === 'netto' ? ' active' : ''}`} onClick={() => set('ivaMode', 'netto')}>Netto</button>
+                  </div>
+                </div>
+                <input className="field-input" type="number" inputMode="decimal" placeholder="0,00" min="0" step="0.01"
+                  value={form.value} onChange={e => set('value', e.target.value)} required />
+              </div>
+              <div className="amount-iva-col amount-iva-col--iva">
+                <label className="field-label">IVA sul valore</label>
+                <div className="iva-pills">
+                  {IVA_RATES.map(r => (
+                    <button key={r.value} type="button"
+                      className={`iva-pill${form.ivaRate === r.value ? ' active' : ''}`}
+                      onClick={() => set('ivaRate', r.value)}
+                    >{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {hasIva && (
+              <div className="iva-breakdown">
+                {form.ivaMode === 'lordo' ? (
+                  <>
+                    <span>Scorpora IVA {form.ivaRate}% → <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Imponibile: <strong>{fmtPreview(nettoVal)}</strong></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Netto: <strong>{fmtPreview(amountNum)}</strong></span>
+                    <span>IVA {form.ivaRate}%: <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Lordo salvato: <strong>{fmtPreview(lordoVal)}</strong></span>
+                  </>
+                )}
+              </div>
+            )}
 
             <label className="field-label">Stato</label>
             <select className="field-input" value={form.status} onChange={e => set('status', e.target.value)}>
@@ -114,15 +188,24 @@ function NewProjectModal({ contacts, onSave, onClose }) {
 
 function EditProjectModal({ project, contacts, onSave, onClose }) {
   const [form, setForm] = useState({
-    name: project.name || '',
+    name:      project.name      || '',
     contactId: project.contactId || '',
-    value: project.value != null ? String(project.value) : '',
-    status: project.status || 'in_corso',
-    notes: project.notes || '',
+    value:     project.value != null ? String(project.value) : '',
+    ivaRate:   project.ivaRate   ?? 22,
+    ivaMode:   'lordo',  // in modifica si parte da lordo (valore già salvato)
+    status:    project.status    || 'in_corso',
+    notes:     project.notes     || '',
   });
   const [saving, setSaving] = useState(false);
 
   function set(f, v) { setForm(p => ({ ...p, [f]: v })); }
+
+  const amountNum  = parseFloat(form.value);
+  const hasIva     = form.ivaRate > 0 && form.value && !isNaN(amountNum);
+  const lordoVal   = hasIva ? (form.ivaMode === 'netto' ? calcLordo(amountNum, form.ivaRate) : amountNum) : null;
+  const nettoVal   = hasIva ? (form.ivaMode === 'lordo' ? calcNetto(amountNum, form.ivaRate) : amountNum) : null;
+  const ivaValPrev = hasIva ? calcIva(lordoVal, form.ivaRate) : null;
+  const savedValue = hasIva && form.ivaMode === 'netto' ? lordoVal : amountNum;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -130,13 +213,14 @@ function EditProjectModal({ project, contacts, onSave, onClose }) {
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
     await onSave(project.id, {
-      name: form.name,
-      contactId: form.contactId || null,
-      contactName: contact?.name || null,
-      contactType: contact?.type || null,
-      value: parseFloat(form.value) || 0,
-      status: form.status,
-      notes: form.notes,
+      name:        form.name,
+      contactId:   form.contactId || null,
+      contactName: contact?.name  || null,
+      contactType: contact?.type  || null,
+      value:       savedValue || 0,  // sempre lordo
+      ivaRate:     form.ivaRate,
+      status:      form.status,
+      notes:       form.notes,
     });
     setSaving(false);
     onClose();
@@ -164,9 +248,46 @@ function EditProjectModal({ project, contacts, onSave, onClose }) {
               })}
             </select>
 
-            <label className="field-label">Valore concordato (€) *</label>
-            <input className="field-input" type="number" inputMode="decimal" min="0" step="0.01"
-              value={form.value} onChange={e => set('value', e.target.value)} required />
+            <div className="amount-iva-row">
+              <div className="amount-iva-col">
+                <div className="field-label-row">
+                  <label className="field-label">Concordato * ({form.ivaMode === 'lordo' ? 'lordo' : 'netto'})</label>
+                  <div className="ln-toggle">
+                    <button type="button" className={`ln-pill${form.ivaMode === 'lordo' ? ' active' : ''}`} onClick={() => set('ivaMode', 'lordo')}>Lordo</button>
+                    <button type="button" className={`ln-pill${form.ivaMode === 'netto' ? ' active' : ''}`} onClick={() => set('ivaMode', 'netto')}>Netto</button>
+                  </div>
+                </div>
+                <input className="field-input" type="number" inputMode="decimal" min="0" step="0.01"
+                  value={form.value} onChange={e => set('value', e.target.value)} required />
+              </div>
+              <div className="amount-iva-col amount-iva-col--iva">
+                <label className="field-label">IVA sul valore</label>
+                <div className="iva-pills">
+                  {IVA_RATES.map(r => (
+                    <button key={r.value} type="button"
+                      className={`iva-pill${form.ivaRate === r.value ? ' active' : ''}`}
+                      onClick={() => set('ivaRate', r.value)}
+                    >{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {hasIva && (
+              <div className="iva-breakdown">
+                {form.ivaMode === 'lordo' ? (
+                  <>
+                    <span>Scorpora IVA {form.ivaRate}% → <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Imponibile: <strong>{fmtPreview(nettoVal)}</strong></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Netto: <strong>{fmtPreview(amountNum)}</strong></span>
+                    <span>IVA {form.ivaRate}%: <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Lordo salvato: <strong>{fmtPreview(lordoVal)}</strong></span>
+                  </>
+                )}
+              </div>
+            )}
 
             <label className="field-label">Stato</label>
             <select className="field-input" value={form.status} onChange={e => set('status', e.target.value)}>
@@ -191,15 +312,22 @@ function EditProjectModal({ project, contacts, onSave, onClose }) {
 
 // ── Aggiungi voce al progetto ─────────────────────────
 
-function ProjectEntryModal({ project, customCategories, contacts, onSave, onClose }) {
+function ProjectEntryModal({ project, customCategories, contacts, onSave, onClose, initialType = 'ricavo' }) {
   const [form, setForm] = useState({
-    type: 'ricavo', amount: '', description: '', category: '',
+    type: initialType, amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', category: '',
     contactId: project.contactId || '', date: today(), status: 'in_sospeso',
   });
   const [saving, setSaving] = useState(false);
 
-  const cats = buildCategories(form.type, customCategories);
+  const cats        = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
+
+  const amountNum   = parseFloat(form.amount);
+  const hasIva      = form.ivaRate > 0 && form.amount && !isNaN(amountNum);
+  const lordoVal    = hasIva ? (form.ivaMode === 'netto' ? calcLordo(amountNum, form.ivaRate) : amountNum) : null;
+  const nettoVal    = hasIva ? (form.ivaMode === 'lordo' ? calcNetto(amountNum, form.ivaRate) : amountNum) : null;
+  const ivaValPrev  = hasIva ? calcIva(lordoVal, form.ivaRate) : null;
+  const savedAmount = hasIva && form.ivaMode === 'netto' ? lordoVal : amountNum;
 
   function set(f, v) {
     setForm(p => ({ ...p, [f]: v, ...(f === 'type' ? { category: '' } : {}) }));
@@ -211,17 +339,18 @@ function ProjectEntryModal({ project, customCategories, contacts, onSave, onClos
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
     await onSave({
-      type: form.type,
-      amount: form.amount,
+      type:        form.type,
+      amount:      savedAmount,  // sempre lordo
+      ivaRate:     form.ivaRate,
       description: form.description,
-      category: form.category || null,
-      contactId: form.contactId || null,
-      contactName: contact?.name || project.contactName || null,
-      contactType: contact?.type || project.contactType || null,
-      date: new Date(form.date),
-      status: needsStatus ? form.status : 'completato',
-      notes: '',
-      projectId: project.id,
+      category:    form.category    || null,
+      contactId:   form.contactId   || null,
+      contactName: contact?.name    || project.contactName || null,
+      contactType: contact?.type    || project.contactType || null,
+      date:        new Date(form.date),
+      status:      needsStatus ? form.status : 'completato',
+      notes:       '',
+      projectId:   project.id,
     });
     setSaving(false);
     onClose();
@@ -246,12 +375,50 @@ function ProjectEntryModal({ project, customCategories, contacts, onSave, onClos
               ))}
             </div>
 
-            <label className="field-label">Importo (€) *</label>
-            <input className="field-input" type="number" inputMode="decimal" placeholder="0,00" min="0" step="0.01"
-              value={form.amount} onChange={e => set('amount', e.target.value)} required autoFocus />
+            <div className="amount-iva-row">
+              <div className="amount-iva-col">
+                <div className="field-label-row">
+                  <label className="field-label">Importo * ({form.ivaMode === 'lordo' ? 'lordo' : 'netto'})</label>
+                  <div className="ln-toggle">
+                    <button type="button" className={`ln-pill${form.ivaMode === 'lordo' ? ' active' : ''}`} onClick={() => set('ivaMode', 'lordo')}>Lordo</button>
+                    <button type="button" className={`ln-pill${form.ivaMode === 'netto' ? ' active' : ''}`} onClick={() => set('ivaMode', 'netto')}>Netto</button>
+                  </div>
+                </div>
+                <input className="field-input" type="number" inputMode="decimal" placeholder="0,00" min="0" step="0.01"
+                  value={form.amount} onChange={e => set('amount', e.target.value)} required autoFocus />
+              </div>
+              <div className="amount-iva-col amount-iva-col--iva">
+                <label className="field-label">Aliquota IVA</label>
+                <div className="iva-pills">
+                  {IVA_RATES.map(r => (
+                    <button key={r.value} type="button"
+                      className={`iva-pill${form.ivaRate === r.value ? ' active' : ''}`}
+                      onClick={() => set('ivaRate', r.value)}
+                    >{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {hasIva && (
+              <div className="iva-breakdown">
+                {form.ivaMode === 'lordo' ? (
+                  <>
+                    <span>Scorpora IVA {form.ivaRate}% → <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Imponibile: <strong>{fmtPreview(nettoVal)}</strong></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Netto: <strong>{fmtPreview(amountNum)}</strong></span>
+                    <span>IVA {form.ivaRate}%: <strong>{fmtPreview(ivaValPrev)}</strong></span>
+                    <span className="iva-breakdown-netto">Lordo salvato: <strong>{fmtPreview(lordoVal)}</strong></span>
+                  </>
+                )}
+              </div>
+            )}
 
             <label className="field-label">Descrizione *</label>
-            <input className="field-input" type="text" value={form.description} onChange={e => set('description', e.target.value)} required />
+            <input className="field-input" type="text" value={form.description}
+              onChange={e => set('description', e.target.value)} required />
 
             {cats.length > 0 && (
               <>
@@ -304,13 +471,20 @@ function ProjectEntryModal({ project, customCategories, contacts, onSave, onClos
 
 // ── Dettaglio progetto ────────────────────────────────
 
-function ProjectDetail({ project, entries, contacts, customCategories, onBack, onAddEntry, onUpdateProject, onDeleteProject }) {
+function ProjectDetail({ project, entries, contacts, customCategories, showNetto, onToggleNetto, onBack, onAddEntry, onUpdateProject, onDeleteProject, autoOpenEntry = false, onAutoOpenDone }) {
   const [showEntryModal, setShowEntryModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showEditModal,  setShowEditModal]  = useState(false);
+  const [confirmDelete,  setConfirmDelete]  = useState(false);
 
-  const { ricavi, crediti, costi, debiti, fatturato, daFatturare, margineOggi, margineCompletamento, pct, projectEntries } =
-    useMemo(() => getStats(project, entries), [project, entries]);
+  useEffect(() => {
+    if (autoOpenEntry) {
+      setShowEntryModal(true);
+      onAutoOpenDone?.();
+    }
+  }, [autoOpenEntry]);
+
+  const { ricavi, crediti, costi, debiti, fatturato, daFatturare, margineOggi, margineCompletamento, pct, projectEntries, projectValue } =
+    useMemo(() => getStats(project, entries, showNetto), [project, entries, showNetto]);
 
   const entrate = projectEntries.filter(e => e.type === 'ricavo' || e.type === 'credito');
   const uscite  = projectEntries.filter(e => e.type === 'costo'  || e.type === 'debito');
@@ -320,7 +494,10 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
 
   return (
     <div className="page">
-      <button className="btn-back" onClick={onBack}>← Tutti i progetti</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <button className="btn-back" onClick={onBack}>← Tutti i progetti</button>
+        <NettoToggle showNetto={showNetto} onChange={onToggleNetto} />
+      </div>
 
       <div className="proj-detail-titlerow">
         <div>
@@ -333,7 +510,8 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
             )}
             <span className="entry-type-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              Concordato: <strong style={{ color: 'var(--text)' }}>{fmt(project.value || 0)}</strong>
+              Concordato: <strong style={{ color: 'var(--text)' }}>{fmt(projectValue)}</strong>
+              {showNetto && <span className="netto-badge">netto</span>}
             </span>
           </div>
         </div>
@@ -365,7 +543,7 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
         <div className="proj-progress-bar">
           <div className="proj-progress-fill" style={{ width: `${pct}%` }} />
         </div>
-        <p className="proj-progress-label">{pct}% fatturato — {fmt(fatturato)} di {fmt(project.value || 0)}</p>
+        <p className="proj-progress-label">{pct}% fatturato — {fmt(fatturato)} di {fmt(projectValue)}</p>
       </div>
 
       {/* KPI grid */}
@@ -391,13 +569,19 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
           <div className="proj-entry-list">
             {entrate.map(e => {
               const t = ENTRY_TYPES[e.type];
+              const displayAmt = val(e, showNetto);
               return (
                 <div key={e.id} className="proj-entry-row">
                   <span className="entry-type-badge" style={{ background: t.bg, color: t.color }}>{t.icon} {t.label}</span>
                   <span className="proj-entry-desc">{e.description}</span>
                   {e.contactName && <span className="contact-chip" style={{ background: '#dcfce7', color: '#16a34a', fontSize: 11 }}>{e.contactName}</span>}
                   <span className="proj-entry-date">{fmtDate(e.date)}</span>
-                  <span className="proj-entry-amount" style={{ color: t.color }}>{fmt(e.amount)}</span>
+                  <span className="proj-entry-amount" style={{ color: t.color }}>
+                    {fmt(displayAmt)}
+                    {(e.ivaRate > 0) && (
+                      <span className="proj-entry-iva">{showNetto ? `lordo ${fmt(e.amount)}` : `netto ${fmt(calcNetto(e.amount, e.ivaRate))}`}</span>
+                    )}
+                  </span>
                 </div>
               );
             })}
@@ -417,13 +601,19 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
           <div className="proj-entry-list">
             {uscite.map(e => {
               const t = ENTRY_TYPES[e.type];
+              const displayAmt = val(e, showNetto);
               return (
                 <div key={e.id} className="proj-entry-row">
                   <span className="entry-type-badge" style={{ background: t.bg, color: t.color }}>{t.icon} {t.label}</span>
                   <span className="proj-entry-desc">{e.description}</span>
                   {e.contactName && <span className="contact-chip" style={{ background: '#dbeafe', color: '#2563eb', fontSize: 11 }}>{e.contactName}</span>}
                   <span className="proj-entry-date">{fmtDate(e.date)}</span>
-                  <span className="proj-entry-amount" style={{ color: t.color }}>{fmt(e.amount)}</span>
+                  <span className="proj-entry-amount" style={{ color: t.color }}>
+                    {fmt(displayAmt)}
+                    {(e.ivaRate > 0) && (
+                      <span className="proj-entry-iva">{showNetto ? `lordo ${fmt(e.amount)}` : `netto ${fmt(calcNetto(e.amount, e.ivaRate))}`}</span>
+                    )}
+                  </span>
                 </div>
               );
             })}
@@ -438,9 +628,9 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
           contacts={contacts}
           onSave={onAddEntry}
           onClose={() => setShowEntryModal(false)}
+          initialType="credito"
         />
       )}
-
       {showEditModal && (
         <EditProjectModal
           project={project}
@@ -455,10 +645,14 @@ function ProjectDetail({ project, entries, contacts, customCategories, onBack, o
 
 // ── Card lista progetti ───────────────────────────────
 
-function ProjectCard({ project, entries, onClick }) {
-  const { ricavi, crediti, costi, margineOggi, pct } = useMemo(() => getStats(project, entries), [project, entries]);
+function ProjectCard({ project, entries, showNetto, onClick }) {
+  const { ricavi, crediti, costi, margineOggi, pct } = useMemo(
+    () => getStats(project, entries, showNetto),
+    [project, entries, showNetto]
+  );
   const st = PROJECT_STATUSES[project.status] || PROJECT_STATUSES.in_corso;
   const ct = project.contactType ? CONTACT_TYPES.find(x => x.key === project.contactType) : null;
+  const projectValue = showNetto ? calcNetto(project.value || 0, project.ivaRate || 0) : (project.value || 0);
 
   return (
     <div className="proj-card" onClick={onClick}>
@@ -475,8 +669,10 @@ function ProjectCard({ project, entries, onClick }) {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.4px' }}>Concordato</p>
-          <p style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>{fmt(project.value || 0)}</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.4px' }}>
+            Concordato {showNetto && <span className="netto-badge">netto</span>}
+          </p>
+          <p style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>{fmt(projectValue)}</p>
         </div>
       </div>
 
@@ -510,9 +706,11 @@ function ProjectCard({ project, entries, onClick }) {
 // ── Componente principale ─────────────────────────────
 
 export default function Projects({ projects, entries, contacts, customCategories, onAdd, onUpdate, onDelete, onAddEntry }) {
-  const [view, setView] = useState('lista');
-  const [selectedId, setSelectedId] = useState(null);
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [view,           setView]          = useState('lista');
+  const [selectedId,     setSelectedId]    = useState(null);
+  const [showNewModal,   setShowNewModal]  = useState(false);
+  const [showNetto,      setShowNetto]     = useState(true);
+  const [autoOpenEntry,  setAutoOpenEntry] = useState(false);
 
   useEffect(() => {
     if (selectedId && !projects.find(p => p.id === selectedId)) setSelectedId(null);
@@ -527,10 +725,14 @@ export default function Projects({ projects, entries, contacts, customCategories
         entries={entries}
         contacts={contacts}
         customCategories={customCategories}
+        showNetto={showNetto}
+        onToggleNetto={setShowNetto}
         onBack={() => setSelectedId(null)}
         onAddEntry={onAddEntry}
         onUpdateProject={onUpdate}
         onDeleteProject={(id) => { onDelete(id); setSelectedId(null); }}
+        autoOpenEntry={autoOpenEntry}
+        onAutoOpenDone={() => setAutoOpenEntry(false)}
       />
     );
   }
@@ -539,24 +741,40 @@ export default function Projects({ projects, entries, contacts, customCategories
     <div className="page">
       <div className="page-header-row">
         <h2 className="page-title">Progetti</h2>
-        <button className="btn-add" onClick={() => setShowNewModal(true)}>+ Nuovo</button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <NettoToggle showNetto={showNetto} onChange={setShowNetto} />
+          <button className="btn-add" onClick={() => setShowNewModal(true)}>+ Nuovo</button>
+        </div>
       </div>
 
       <div className="subnav">
-        <button className={`subnav-btn ${view === 'lista' ? 'active' : ''}`} onClick={() => setView('lista')}>Lista</button>
+        <button className={`subnav-btn ${view === 'lista'   ? 'active' : ''}`} onClick={() => setView('lista')}>Lista</button>
         <button className={`subnav-btn ${view === 'analisi' ? 'active' : ''}`} onClick={() => setView('analisi')}>Per categoria</button>
       </div>
 
       {view === 'lista' && (
         projects.length === 0
           ? <div className="empty-state">Nessun progetto. Crea il primo con "+ Nuovo".</div>
-          : <div className="proj-list">{projects.map(p => <ProjectCard key={p.id} project={p} entries={entries} onClick={() => setSelectedId(p.id)} />)}</div>
+          : <div className="proj-list">
+              {projects.map(p =>
+                <ProjectCard key={p.id} project={p} entries={entries} showNetto={showNetto} onClick={() => setSelectedId(p.id)} />
+              )}
+            </div>
       )}
 
       {view === 'analisi' && <PerCategoria entries={entries} />}
 
       {showNewModal && (
-        <NewProjectModal contacts={contacts} onSave={onAdd} onClose={() => setShowNewModal(false)} />
+        <NewProjectModal
+          contacts={contacts}
+          onSave={async (data) => {
+            const newId = await onAdd(data);
+            setShowNewModal(false);
+            setSelectedId(newId);
+            setAutoOpenEntry(true);
+          }}
+          onClose={() => setShowNewModal(false)}
+        />
       )}
     </div>
   );

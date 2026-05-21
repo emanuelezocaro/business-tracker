@@ -1,14 +1,22 @@
 import { useState } from 'react';
-import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS } from '../constants';
+import { ENTRY_TYPES, buildCategories, STATUS_OPTIONS, IVA_RATES, calcNetto, calcLordo, calcIva } from '../constants';
 import { CONTACT_TYPES } from './Contacts';
 
 const today = () => new Date().toISOString().split('T')[0];
+
+function fmtPreview(n) {
+  if (!n || isNaN(n)) return '';
+  const [int, dec] = Math.abs(n).toFixed(2).split('.');
+  return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec} €`;
+}
 
 export default function AddEntry({ onAdd, contacts = [], customCategories = [], entries = [], projects = [] }) {
   const [form, setForm] = useState({
     type: 'ricavo',
     category: '',
     amount: '',
+    ivaRate: 22,
+    ivaMode: 'lordo',   // 'lordo' | 'netto'
     description: '',
     date: today(),
     status: 'completato',
@@ -21,6 +29,15 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
 
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
+
+  const amountNum  = parseFloat(form.amount);
+  const hasIva     = form.ivaRate > 0 && form.amount && !isNaN(amountNum);
+  // Se l'utente inserisce netto → calcoliamo il lordo; se lordo → calcoliamo il netto
+  const lordoVal   = hasIva ? (form.ivaMode === 'netto' ? calcLordo(amountNum, form.ivaRate) : amountNum)       : null;
+  const nettoVal   = hasIva ? (form.ivaMode === 'lordo' ? calcNetto(amountNum, form.ivaRate) : amountNum)       : null;
+  const ivaVal     = hasIva ? calcIva(lordoVal, form.ivaRate) : null;
+  // Importo che verrà salvato (sempre lordo)
+  const savedAmount = hasIva && form.ivaMode === 'netto' ? lordoVal : amountNum;
 
   function set(field, value) {
     setForm(prev => ({
@@ -36,21 +53,22 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
     setSaving(true);
     const contact = contacts.find(c => c.id === form.contactId);
     await onAdd({
-      type: form.type,
-      category: form.category || null,
-      amount: form.amount,
+      type:        form.type,
+      category:    form.category || null,
+      amount:      savedAmount,   // sempre lordo
+      ivaRate:     form.ivaRate,
       description: form.description,
-      date: new Date(form.date),
-      status: needsStatus ? form.status : 'completato',
-      notes: form.notes,
-      contactId: form.contactId || null,
-      contactName: contact?.name || null,
-      contactType: contact?.type || null,
-      projectId: form.projectId || null,
+      date:        new Date(form.date),
+      status:      needsStatus ? form.status : 'completato',
+      notes:       form.notes,
+      contactId:   form.contactId  || null,
+      contactName: contact?.name   || null,
+      contactType: contact?.type   || null,
+      projectId:   form.projectId  || null,
     });
     setSaving(false);
     setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', description: '', date: today(), status: 'completato', notes: '', contactId: '', projectId: '' });
+    setForm({ type: form.type, category: '', amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', date: today(), status: 'completato', notes: '', contactId: '', projectId: '' });
     setTimeout(() => setSuccess(false), 2000);
   }
 
@@ -69,9 +87,49 @@ export default function AddEntry({ onAdd, contacts = [], customCategories = [], 
           ))}
         </div>
 
-        <label className="field-label">Importo (€) *</label>
-        <input className="field-input" type="number" inputMode="decimal" placeholder="0,00"
-          value={form.amount} onChange={e => set('amount', e.target.value)} required min="0" step="0.01" />
+        {/* Importo + IVA affiancati */}
+        <div className="amount-iva-row">
+          <div className="amount-iva-col">
+            <div className="field-label-row">
+              <label className="field-label">Importo * ({form.ivaMode === 'lordo' ? 'lordo' : 'netto'})</label>
+              <div className="ln-toggle">
+                <button type="button" className={`ln-pill${form.ivaMode === 'lordo' ? ' active' : ''}`} onClick={() => set('ivaMode', 'lordo')}>Lordo</button>
+                <button type="button" className={`ln-pill${form.ivaMode === 'netto' ? ' active' : ''}`} onClick={() => set('ivaMode', 'netto')}>Netto</button>
+              </div>
+            </div>
+            <input className="field-input" type="number" inputMode="decimal" placeholder="0,00"
+              value={form.amount} onChange={e => set('amount', e.target.value)} required min="0" step="0.01" />
+          </div>
+          <div className="amount-iva-col amount-iva-col--iva">
+            <label className="field-label">Aliquota IVA</label>
+            <div className="iva-pills">
+              {IVA_RATES.map(r => (
+                <button key={r.value} type="button"
+                  className={`iva-pill${form.ivaRate === r.value ? ' active' : ''}`}
+                  onClick={() => set('ivaRate', r.value)}
+                >{r.label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Preview calcolo IVA */}
+        {hasIva && (
+          <div className="iva-breakdown">
+            {form.ivaMode === 'lordo' ? (
+              <>
+                <span>Scorpora IVA {form.ivaRate}% → <strong>{fmtPreview(ivaVal)}</strong></span>
+                <span className="iva-breakdown-netto">Imponibile: <strong>{fmtPreview(nettoVal)}</strong></span>
+              </>
+            ) : (
+              <>
+                <span>Netto: <strong>{fmtPreview(amountNum)}</strong></span>
+                <span>IVA {form.ivaRate}%: <strong>{fmtPreview(ivaVal)}</strong></span>
+                <span className="iva-breakdown-netto">Lordo salvato: <strong>{fmtPreview(lordoVal)}</strong></span>
+              </>
+            )}
+          </div>
+        )}
 
         <label className="field-label">Descrizione *</label>
         <input className="field-input" type="text" placeholder="Es. Consulenza Mario Rossi"
