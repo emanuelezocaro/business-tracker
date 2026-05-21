@@ -39,18 +39,22 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
   const ct = CONTACT_TYPES.find(x => x.key === entry.contactType);
 
   return (
-    <div className="entry-card">
+    <div className={`entry-card${needsStatus ? ' has-status' : ''}`}>
+
+      {/* colonna 1 desktop / riga 1 sinistra mobile */}
       <div className="ec-type">
         <span className="entry-type-badge" style={{ background: t.bg, color: t.color }}>
           {t.icon} {t.label}
         </span>
       </div>
 
+      {/* colonna 2 desktop / riga 2 mobile */}
       <div className="ec-main">
         <span className="entry-desc">{entry.description}</span>
         {entry.notes && <p className="entry-notes">{entry.notes}</p>}
       </div>
 
+      {/* colonna 3 desktop / riga 3 sinistra mobile */}
       <div className="ec-contact">
         {entry.contactName && (
           <span className="contact-chip" style={{ background: ct?.bg || '#f1f5f9', color: ct?.color || '#64748b' }}>
@@ -59,12 +63,15 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
         )}
       </div>
 
+      {/* colonna 4 desktop / riga 3 centro mobile */}
       <div className="ec-cat">
         <span className="entry-cat">{entry.category}</span>
       </div>
 
+      {/* colonna 5 desktop / riga 1 destra mobile */}
       <div className="ec-date">{fmtDate(entry.date)}</div>
 
+      {/* colonna 6 desktop / riga 3 destra mobile (solo se ha stato) */}
       <div className="ec-status">
         {needsStatus ? (
           <select
@@ -80,15 +87,15 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
         ) : null}
       </div>
 
+      {/* colonna 7 desktop / riga 4 sinistra mobile */}
       <div className="ec-amount">
         <span className="entry-amount" style={{ color: t.color }}>{fmt(entry.amount)}</span>
         {entry.ivaRate > 0 && (
-          <span className="entry-netto">
-            netto {fmt(calcNetto(entry.amount, entry.ivaRate))}
-          </span>
+          <span className="entry-netto">netto {fmt(calcNetto(entry.amount, entry.ivaRate))}</span>
         )}
       </div>
 
+      {/* colonna 8 desktop / riga 4 destra mobile */}
       <div className="ec-actions">
         {confirmDelete === entry.id ? (
           <>
@@ -114,6 +121,7 @@ function EntryRow({ entry, onDelete, onUpdateStatus, onEdit, onPartialPayment, c
           </>
         )}
       </div>
+
     </div>
   );
 }
