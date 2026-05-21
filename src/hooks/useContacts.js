@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  collection, addDoc, deleteDoc, doc,
+  collection, addDoc, deleteDoc, updateDoc, doc,
   onSnapshot, query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -22,9 +22,13 @@ export function useContacts() {
     await addDoc(collection(db, 'contacts'), { ...data, createdAt: serverTimestamp() });
   }
 
+  async function updateContact(id, data) {
+    await updateDoc(doc(db, 'contacts', id), data);
+  }
+
   async function deleteContact(id) {
     await deleteDoc(doc(db, 'contacts', id));
   }
 
-  return { contacts, loading, addContact, deleteContact };
+  return { contacts, loading, addContact, updateContact, deleteContact };
 }

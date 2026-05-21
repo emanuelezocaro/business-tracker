@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  collection, addDoc, deleteDoc, doc,
+  collection, addDoc, deleteDoc, updateDoc, doc,
   onSnapshot, query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -22,9 +22,13 @@ export function useCategories() {
     await addDoc(collection(db, 'categories'), { ...data, createdAt: serverTimestamp() });
   }
 
+  async function updateCategory(id, data) {
+    await updateDoc(doc(db, 'categories', id), data);
+  }
+
   async function deleteCategory(id) {
     await deleteDoc(doc(db, 'categories', id));
   }
 
-  return { categories, loading, addCategory, deleteCategory };
+  return { categories, loading, addCategory, updateCategory, deleteCategory };
 }

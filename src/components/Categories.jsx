@@ -1,17 +1,73 @@
 import { useState } from 'react';
 import { ENTRY_TYPES } from '../constants';
 
+function EditCategoryModal({ category, onSave, onClose }) {
+  const types = Array.isArray(category.types) ? category.types : category.type ? [category.type] : [];
+  const [name, setName] = useState(category.name);
+  const [selectedTypes, setSelectedTypes] = useState(types);
+  const [saving, setSaving] = useState(false);
+
+  function toggle(key) {
+    setSelectedTypes(prev => prev.includes(key) ? prev.filter(t => t !== key) : [...prev, key]);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim() || selectedTypes.length === 0) return;
+    setSaving(true);
+    await onSave(category.id, { name: name.trim(), types: selectedTypes });
+    setSaving(false);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 440 }}>
+        <div className="modal-header">
+          <h3 className="modal-title">Modifica categoria</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <form className="form" onSubmit={handleSubmit}>
+            <label className="field-label">Nome *</label>
+            <input className="field-input" type="text" value={name}
+              onChange={e => setName(e.target.value)} required autoFocus />
+
+            <label className="field-label">Valida per</label>
+            <div className="cat-type-checkboxes">
+              {Object.entries(ENTRY_TYPES).map(([key, t]) => (
+                <label key={key} className={`cat-type-check ${selectedTypes.includes(key) ? 'selected' : ''}`}
+                  style={selectedTypes.includes(key) ? { background: t.bg, color: t.color, borderColor: t.color } : {}}>
+                  <input type="checkbox" checked={selectedTypes.includes(key)} onChange={() => toggle(key)} />
+                  {t.icon} {t.label}
+                </label>
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="btn-ghost-sm" style={{ padding: '10px 20px', fontSize: 14 }} onClick={onClose}>Annulla</button>
+              <button className="btn-primary" type="submit" disabled={saving || !name.trim() || selectedTypes.length === 0} style={{ flex: 1 }}>
+                {saving ? 'Salvataggio...' : 'Salva modifiche'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getTypes(c) {
   if (Array.isArray(c.types)) return c.types;
   if (c.type) return [c.type];
   return [];
 }
 
-export default function Categories({ categories, onAdd, onDelete }) {
+export default function Categories({ categories, onAdd, onUpdate, onDelete }) {
   const [filterType, setFilterType] = useState('tutti');
   const [newName, setNewName] = useState('');
   const [selectedTypes, setSelectedTypes] = useState(['ricavo', 'costo', 'credito', 'debito']);
   const [saving, setSaving] = useState(false);
+  const [editCategory, setEditCategory] = useState(null);
 
   function toggleType(key) {
     setSelectedTypes(prev =>
@@ -86,16 +142,29 @@ export default function Categories({ categories, onAdd, onDelete }) {
                     })}
                   </div>
                 </div>
-                <button className="btn-icon btn-icon-danger" onClick={() => onDelete(c.id)} title="Elimina">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className="btn-icon" onClick={() => setEditCategory(c)} title="Modifica">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button className="btn-icon btn-icon-danger" onClick={() => onDelete(c.id)} title="Elimina">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {editCategory && (
+        <EditCategoryModal
+          category={editCategory}
+          onSave={async (id, data) => { await onUpdate(id, data); setEditCategory(null); }}
+          onClose={() => setEditCategory(null)}
+        />
       )}
 
       {/* Form aggiunta */}

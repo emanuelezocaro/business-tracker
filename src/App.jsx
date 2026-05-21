@@ -21,8 +21,8 @@ const TABS = [
 export default function App() {
   const [tab, setTab] = useState('dashboard');
   const { entries, loading: loadingEntries, addEntry, deleteEntry, updateEntryStatus, updateEntry } = useEntries();
-  const { contacts, loading: loadingContacts, addContact, deleteContact } = useContacts();
-  const { categories, loading: loadingCategories, addCategory, deleteCategory } = useCategories();
+  const { contacts, loading: loadingContacts, addContact, updateContact, deleteContact } = useContacts();
+  const { categories, loading: loadingCategories, addCategory, updateCategory, deleteCategory } = useCategories();
   const { projects, loading: loadingProjects, addProject, updateProject, deleteProject } = useProjects();
 
   async function handleAdd(data) {
@@ -45,7 +45,7 @@ export default function App() {
       {tab === 'progetti' && <Projects projects={projects} entries={entries} contacts={contacts} customCategories={categories} onAdd={addProject} onUpdate={updateProject} onDelete={deleteProject} onAddEntry={addEntry} />}
       {tab === 'add' && <AddEntry onAdd={handleAdd} contacts={contacts} customCategories={categories} entries={entries} projects={projects} />}
       {tab === 'list' && <EntryList entries={entries} onDelete={deleteEntry} onUpdateStatus={updateEntryStatus} onUpdate={updateEntry} onAdd={addEntry} contacts={contacts} customCategories={categories} projects={projects} />}
-      {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />}
+      {tab === 'contacts' && <Contacts contacts={contacts} onAdd={addContact} onUpdate={updateContact} onDelete={deleteContact} categories={categories} onAddCategory={addCategory} onUpdateCategory={updateCategory} onDeleteCategory={deleteCategory} />}
     </>
   );
 
