@@ -28,6 +28,7 @@ export default function AddEntry({ onAdd, onAddContact, contacts = [], customCat
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const categories = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
@@ -51,27 +52,46 @@ export default function AddEntry({ onAdd, onAddContact, contacts = [], customCat
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.amount || !form.description) return;
+    setError('');
+    const amountVal = parseFloat(form.amount);
+    if (!form.amount || isNaN(amountVal) || amountVal <= 0) {
+      setError('Inserisci un importo valido maggiore di zero.');
+      return;
+    }
+    if (!form.description.trim()) {
+      setError('La descrizione è obbligatoria.');
+      return;
+    }
+    if (!form.date) {
+      setError('Seleziona una data.');
+      return;
+    }
     setSaving(true);
-    const contact = contacts.find(c => c.id === form.contactId);
-    await onAdd({
-      type:        form.type,
-      category:    form.category || null,
-      amount:      savedAmount,   // sempre lordo
-      ivaRate:     form.ivaRate,
-      description: form.description,
-      date:        new Date(form.date),
-      status:      needsStatus ? form.status : 'completato',
-      notes:       form.notes,
-      contactId:   form.contactId  || null,
-      contactName: contact?.name   || form.contactName  || null,
-      contactType: contact?.type   || form.contactType  || null,
-      projectId:   form.projectId  || null,
-    });
-    setSaving(false);
-    setSuccess(true);
-    setForm({ type: form.type, category: '', amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', date: today(), status: 'completato', notes: '', contactId: '', contactName: '', contactType: '', projectId: '' });
-    setTimeout(() => setSuccess(false), 2000);
+    try {
+      const contact = contacts.find(c => c.id === form.contactId);
+      await onAdd({
+        type:        form.type,
+        category:    form.category || null,
+        amount:      savedAmount,   // sempre lordo
+        ivaRate:     form.ivaRate,
+        description: form.description.trim(),
+        date:        new Date(form.date),
+        status:      needsStatus ? form.status : 'completato',
+        notes:       form.notes,
+        contactId:   form.contactId  || null,
+        contactName: contact?.name   || form.contactName  || null,
+        contactType: contact?.type   || form.contactType  || null,
+        projectId:   form.projectId  || null,
+      });
+      setSuccess(true);
+      setForm({ type: form.type, category: '', amount: '', ivaRate: 22, ivaMode: 'lordo', description: '', date: today(), status: 'completato', notes: '', contactId: '', contactName: '', contactType: '', projectId: '' });
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (err) {
+      console.error('Errore salvataggio voce:', err);
+      setError('Errore durante il salvataggio. Riprova.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -137,6 +157,15 @@ export default function AddEntry({ onAdd, onAddContact, contacts = [], customCat
         <input className="field-input" type="text" placeholder="Es. Consulenza Mario Rossi"
           value={form.description} onChange={e => set('description', e.target.value)} required />
 
+        <label className="field-label">Contatto collegato</label>
+        <ContactPicker
+          contacts={contacts}
+          value={form.contactId}
+          onChange={(id, name, type) => setForm(f => ({ ...f, contactId: id, contactName: name, contactType: type }))}
+          onAddContact={onAddContact}
+          defaultType={form.type === 'ricavo' || form.type === 'credito' ? 'cliente' : 'fornitore'}
+        />
+
         <label className="field-label">Categoria</label>
         {categories.length === 0 ? (
           <p className="field-hint">Nessuna categoria per questo tipo. Creale in <strong>Gestione → Categorie</strong>.</p>
@@ -147,17 +176,8 @@ export default function AddEntry({ onAdd, onAddContact, contacts = [], customCat
           </select>
         )}
 
-        <label className="field-label">Contatto collegato</label>
-        <ContactPicker
-          contacts={contacts}
-          value={form.contactId}
-          onChange={(id, name, type) => setForm(f => ({ ...f, contactId: id, contactName: name, contactType: type }))}
-          onAddContact={onAddContact}
-          defaultType={form.type === 'ricavo' || form.type === 'credito' ? 'cliente' : 'fornitore'}
-        />
-
         <label className="field-label">Data</label>
-        <input className="field-input" type="date" value={form.date} onChange={e => set('date', e.target.value)} />
+        <input className="field-input" type="date" value={form.date} onChange={e => set('date', e.target.value)} required />
 
         {needsStatus && (
           <>
@@ -186,6 +206,8 @@ export default function AddEntry({ onAdd, onAddContact, contacts = [], customCat
         <label className="field-label">Note (opzionale)</label>
         <textarea className="field-input field-textarea" placeholder="Aggiungi dettagli..."
           value={form.notes} onChange={e => set('notes', e.target.value)} rows={3} />
+
+        {error && <p className="form-error">{error}</p>}
 
         <button className="btn-primary" type="submit" disabled={saving}>
           {saving ? 'Salvataggio...' : success ? '✓ Salvato!' : 'Aggiungi voce'}

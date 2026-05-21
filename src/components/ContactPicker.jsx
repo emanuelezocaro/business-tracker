@@ -84,14 +84,19 @@ export default function ContactPicker({
   async function handleCreate() {
     if (!trimmed || saving) return;
     setSaving(true);
-    const result = await onAddContact({ name: trimmed, type: newType, notes: '' });
-    setSaving(false);
-    if (result) {
-      onChange(result.id, result.name, result.type);
-      setText(result.name);
+    try {
+      const result = await onAddContact({ name: trimmed, type: newType, notes: '' });
+      if (result) {
+        onChange(result.id, result.name, result.type);
+        setText(result.name);
+      }
+      setOpen(false);
+      setCreating(false);
+    } catch (err) {
+      console.error('Errore creazione contatto:', err);
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
-    setCreating(false);
   }
 
   return (

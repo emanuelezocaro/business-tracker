@@ -31,6 +31,7 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
     projectId:   entry.projectId   || '',
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const categories  = buildCategories(form.type, customCategories);
   const needsStatus = form.type === 'credito' || form.type === 'debito';
@@ -52,25 +53,44 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.amount || !form.description) return;
+    setError('');
+    const amountVal = parseFloat(form.amount);
+    if (!form.amount || isNaN(amountVal) || amountVal <= 0) {
+      setError('Inserisci un importo valido maggiore di zero.');
+      return;
+    }
+    if (!form.description.trim()) {
+      setError('La descrizione è obbligatoria.');
+      return;
+    }
+    if (!form.date) {
+      setError('Seleziona una data.');
+      return;
+    }
     setSaving(true);
-    const contact = contacts.find(c => c.id === form.contactId);
-    await onSave(entry.id, {
-      type:        form.type,
-      category:    form.category   || null,
-      amount:      savedAmount,    // sempre lordo
-      ivaRate:     form.ivaRate,
-      description: form.description,
-      date:        new Date(form.date),
-      status:      needsStatus ? form.status : 'completato',
-      notes:       form.notes,
-      contactId:   form.contactId  || null,
-      contactName: contact?.name   || form.contactName || null,
-      contactType: contact?.type   || form.contactType || null,
-      projectId:   form.projectId  || null,
-    });
-    setSaving(false);
-    onClose();
+    try {
+      const contact = contacts.find(c => c.id === form.contactId);
+      await onSave(entry.id, {
+        type:        form.type,
+        category:    form.category   || null,
+        amount:      savedAmount,    // sempre lordo
+        ivaRate:     form.ivaRate,
+        description: form.description.trim(),
+        date:        new Date(form.date),
+        status:      needsStatus ? form.status : 'completato',
+        notes:       form.notes,
+        contactId:   form.contactId  || null,
+        contactName: contact?.name   || form.contactName || null,
+        contactType: contact?.type   || form.contactType || null,
+        projectId:   form.projectId  || null,
+      });
+      onClose();
+    } catch (err) {
+      console.error('Errore salvataggio voce:', err);
+      setError('Errore durante il salvataggio. Riprova.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -191,6 +211,8 @@ export default function EditModal({ entry, contacts, customCategories, entries, 
             <label className="field-label">Note</label>
             <textarea className="field-input field-textarea"
               value={form.notes} onChange={e => set('notes', e.target.value)} rows={3} />
+
+            {error && <p className="form-error">{error}</p>}
 
             <div className="modal-actions">
               <button type="button" className="btn-ghost-sm" style={{ padding: '10px 20px', fontSize: 14 }} onClick={onClose}>
