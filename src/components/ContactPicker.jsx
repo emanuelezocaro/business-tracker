@@ -27,10 +27,21 @@ export default function ContactPicker({
 
   const selectedContact = contacts.find(c => c.id === value);
 
-  // Quando il valore esterno cambia (es. reset form) aggiorna il testo
+  // Quando il valore esterno cambia aggiorna il testo SOLO se:
+  //   - c'è un contatto trovato (mostra il suo nome), oppure
+  //   - il valore è vuoto (form reset → svuota il campo)
+  // Se value è settato ma il contatto non è ancora in lista (lag Firestore dopo create),
+  // non toccare il testo già impostato dall'handler.
   useEffect(() => {
-    if (!open) setText(selectedContact?.name || '');
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!open) {
+      if (selectedContact) {
+        setText(selectedContact.name);
+      } else if (!value) {
+        setText('');
+      }
+      // value settato ma contatto non ancora in lista → lascia il testo corrente
+    }
+  }, [value, selectedContact]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Aggiorna il tipo default quando cambia il tipo della voce
   useEffect(() => { setNewType(defaultType); }, [defaultType]);
@@ -41,13 +52,18 @@ export default function ContactPicker({
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false);
         setCreating(false);
-        // ripristina testo se c'è una selezione, altrimenti lascia quel che ha scritto
-        setText(selectedContact?.name || (value ? '' : text));
+        // Se c'è un contatto selezionato mostra il suo nome,
+        // altrimenti svuota (nessuna selezione) — non toccare se il contatto è in fase di caricamento
+        if (selectedContact) {
+          setText(selectedContact.name);
+        } else if (!value) {
+          setText('');
+        }
       }
     }
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [value, selectedContact, text]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, selectedContact]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmed = text.trim();
 
