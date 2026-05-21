@@ -1318,6 +1318,7 @@ body { background: var(--bg); }
 .contact-picker {
   position: relative;
   width: 100%;
+  z-index: 10;
 }
 
 .cp-input-wrap {
@@ -1366,7 +1367,7 @@ body { background: var(--bg); }
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: var(--card-bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,.12);
@@ -1465,7 +1466,7 @@ body { background: var(--bg); }
   padding: 5px 12px;
   border: 1.5px solid var(--border);
   border-radius: 20px;
-  background: var(--card-bg);
+  background: var(--surface);
   font-size: 12px;
   font-weight: 500;
   color: var(--text);
