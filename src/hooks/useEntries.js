@@ -25,10 +25,17 @@ export function useEntries() {
     return unsub;
   }, []);
 
+  function applyCompletionConversion(data) {
+    if (data.status === 'completato' && data.type === 'debito')  return { ...data, type: 'costo'  };
+    if (data.status === 'completato' && data.type === 'credito') return { ...data, type: 'ricavo' };
+    return data;
+  }
+
   async function addEntry(data) {
+    const resolved = applyCompletionConversion(data);
     await addDoc(collection(db, 'entries'), {
-      ...data,
-      amount: parseFloat(data.amount),
+      ...resolved,
+      amount: parseFloat(resolved.amount),
       createdAt: serverTimestamp(),
     });
   }
@@ -45,9 +52,10 @@ export function useEntries() {
   }
 
   async function updateEntry(id, data) {
+    const resolved = applyCompletionConversion(data);
     await updateDoc(doc(db, 'entries', id), {
-      ...data,
-      amount: parseFloat(data.amount),
+      ...resolved,
+      amount: parseFloat(resolved.amount),
     });
   }
 
