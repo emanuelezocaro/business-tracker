@@ -24,6 +24,8 @@ function App() {
     renameActivity,
     deleteActivity,
     reorderActivities,
+    exportData,
+    importData,
   } = useHabitData()
 
   return (
@@ -48,6 +50,8 @@ function App() {
             onRename={renameActivity}
             onDelete={deleteActivity}
             onReorder={reorderActivities}
+            onExport={exportData}
+            onImport={importData}
           />
         )}
       </main>

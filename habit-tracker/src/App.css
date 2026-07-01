@@ -439,3 +439,55 @@ td.is-today {
   color: var(--danger);
   border-color: var(--danger);
 }
+
+/* Backup */
+.backup-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backup-card__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.backup-card__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.backup-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.backup-card__actions button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.backup-card__secondary {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.backup-card__message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--accent);
+}

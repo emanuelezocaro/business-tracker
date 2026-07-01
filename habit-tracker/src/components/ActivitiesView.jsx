@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { shareOrDownloadText } from '../utils/shareFile'
 
 const EMOJI_CHOICES = ['✅', '📖', '🏃', '🇬🇧', '💼', '🧘', '🎸', '💧', '🥗', '😴', '💻', '🎨']
 
@@ -8,12 +9,16 @@ export default function ActivitiesView({
   onRename,
   onDelete,
   onReorder,
+  onExport,
+  onImport,
 }) {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState(EMOJI_CHOICES[0])
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editEmoji, setEditEmoji] = useState('')
+  const [backupMessage, setBackupMessage] = useState('')
+  const fileInputRef = useRef(null)
 
   function handleAdd(e) {
     e.preventDefault()
@@ -32,6 +37,32 @@ export default function ActivitiesView({
   function saveEdit(id) {
     onRename(id, editName, editEmoji)
     setEditingId(null)
+  }
+
+  async function handleExport() {
+    const today = new Date().toISOString().slice(0, 10)
+    const shared = await shareOrDownloadText(`weekly-backup-${today}.json`, onExport())
+    setBackupMessage(shared ? 'Backup esportato ✓' : '')
+  }
+
+  function handleImportClick() {
+    fileInputRef.current?.click()
+  }
+
+  function handleImportFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        onImport(String(reader.result))
+        setBackupMessage('Backup importato ✓')
+      } catch {
+        setBackupMessage('File di backup non valido')
+      }
+    }
+    reader.readAsText(file)
   }
 
   return (
@@ -142,6 +173,30 @@ export default function ActivitiesView({
           </li>
         ))}
       </ul>
+
+      <div className="backup-card">
+        <h2 className="backup-card__title">Backup dati</h2>
+        <p className="backup-card__hint">
+          Esporta un file con tutte le tue attività e lo storico: salvalo su iCloud/Files e
+          importalo se cambi telefono.
+        </p>
+        <div className="backup-card__actions">
+          <button type="button" onClick={handleExport}>
+            Esporta backup
+          </button>
+          <button type="button" className="backup-card__secondary" onClick={handleImportClick}>
+            Importa backup
+          </button>
+        </div>
+        {backupMessage && <p className="backup-card__message">{backupMessage}</p>}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFile}
+          hidden
+        />
+      </div>
     </div>
   )
 }

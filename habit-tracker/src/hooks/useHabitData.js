@@ -78,6 +78,23 @@ export function useHabitData() {
     })
   }, [])
 
+  const exportData = useCallback(() => {
+    return JSON.stringify(
+      { app: 'weekly-habit-tracker', version: 1, exportedAt: new Date().toISOString(), activities, logs },
+      null,
+      2,
+    )
+  }, [activities, logs])
+
+  const importData = useCallback((json) => {
+    const parsed = JSON.parse(json)
+    if (!Array.isArray(parsed.activities) || typeof parsed.logs !== 'object' || parsed.logs === null) {
+      throw new Error('File di backup non valido')
+    }
+    setActivities(parsed.activities)
+    setLogs(parsed.logs)
+  }, [])
+
   return {
     activities,
     logs,
@@ -86,5 +103,7 @@ export function useHabitData() {
     renameActivity,
     deleteActivity,
     reorderActivities,
+    exportData,
+    importData,
   }
 }
